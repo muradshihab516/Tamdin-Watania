@@ -1,0 +1,30 @@
+{
+  "entities": {
+    "WorkLog": {
+      "title": "WorkLog",
+      "description": "Daily work record containing hours worked, description, overtime, and date formats.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "dateGregorian": { "type": "string" },
+        "dateHijri": { "type": "string" },
+        "company": { "type": "string" },
+        "location": { "type": "string" },
+        "description": { "type": "string" },
+        "hours": { "type": "number" },
+        "overtime": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "dateGregorian", "dateHijri", "company", "description", "hours", "overtime"]
+    }
+  },
+  "firestore": {
+    "workLogs/{logId}": {
+      "schema": "WorkLog",
+      "description": "Collection of work log records"
+    }
+  }
+}

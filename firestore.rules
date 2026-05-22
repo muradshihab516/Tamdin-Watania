@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Catch-all safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Standard helpers
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Helper for WorkLog validation
+    function isValidWorkLog(data) {
+      return data != null
+        && data.userId == request.auth.uid
+        && data.dateGregorian is string && data.dateGregorian.size() >= 8 && data.dateGregorian.size() <= 64
+        && data.dateHijri is string && data.dateHijri.size() >= 1 && data.dateHijri.size() <= 128
+        && data.company is string && data.company.size() >= 1 && data.company.size() <= 200
+        && data.description is string && data.description.size() >= 1 && data.description.size() <= 2000
+        && data.hours is number && data.hours >= 0 && data.hours <= 24
+        && data.overtime is number && data.overtime >= 0 && data.overtime <= 24;
+    }
+
+    match /workLogs/{logId} {
+      allow create: if isSignedIn()
+        && isValidId(logId)
+        && isValidWorkLog(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.userId == request.auth.uid;
+
+      allow read: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+
+      allow update: if isSignedIn()
+        && isValidId(logId)
+        && resource.data.userId == request.auth.uid
+        && isValidWorkLog(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.userId == resource.data.userId;
+
+      allow delete: if isSignedIn()
+        && resource.data.userId == request.auth.uid;
+    }
+  }
+}

@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap');
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Custom print styles to guarantee an executive-level paper report output */
+@media print {
+  body {
+    background-color: white !important;
+    color: black !important;
+    font-size: 11px !important;
+  }
+  
+  .no-print,
+  #btn-save-log,
+  #form-container,
+  #header-nav,
+  #intro-panel,
+  #settings-panel,
+  #search-filter-controls,
+  button,
+  footer {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  /* Force table columns to wrap and display cleanly */
+  table {
+    width: 100% !important;
+    border: 1px solid #cbd5e1 !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #e2e8f0 !important;
+    padding: 8px !important;
+  }
+
+  /* Prevent page breaks inside cards or table rows */
+  tr, .card {
+    page-break-inside: avoid !important;
+  }
+
+  /* Reset container margins/paddings */
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* Base custom interactive transitions */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+/* Language styling helper */
+.dir-rtl {
+  direction: rtl;
+}

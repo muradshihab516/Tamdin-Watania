@@ -1,0 +1,6 @@
+{
+  "name": "Work Log Tracker",
+  "description": "Daily work hours, overtime, and location tracker with dual Gregorian and Arabic Hijri calendar auto-conversion for Al Tamdin Al Watania",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
