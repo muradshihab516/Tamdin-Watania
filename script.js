@@ -850,6 +850,74 @@ function exportLogsToCSV() {
   document.body.removeChild(link);
 }
 
+// Handle login/authentication failure with beautiful, bilingual visual errors & clear guidelines
+function handleAuthError(err) {
+  const errorContainer = document.getElementById('auth-error-container');
+  if (!errorContainer) return;
+
+  errorContainer.classList.remove('hidden');
+
+  const currentDomain = window.location.hostname || "your-domain.github.io";
+  let errorTitleEn = "Google Sign-In Failed";
+  let errorTitleBn = "গুগল লগইন ব্যর্থ হয়েছে";
+  let errorMsgEn = "";
+  let errorMsgBn = "";
+
+  const isUnauthorizedDomain = err && (err.code === 'auth/unauthorized-domain' || (err.message && err.message.includes('unauthorized-domain')));
+  const isPopupBlocked = err && (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('popup-blocked')));
+
+  if (isUnauthorizedDomain) {
+    errorTitleEn = "GitHub Pages / Custom Domain Security Blocked";
+    errorTitleBn = "গিটহাব পেজ বা ডোমেন সিকিউরিটি ব্লক নোটিশ";
+    errorMsgEn = `Since you have deployed this project to a custom hosting or GitHub Pages (<strong>${currentDomain}</strong>), Google Auth is blocked until you authorize this domain in your Firebase general project settings. <br/><br/><strong>To quickly solve this:</strong><br/>1. Go to your <strong>Firebase Console &rarr; Authentication &rarr; Settings &rarr; Authorized Domains</strong>.<br/>2. Click <strong>"Add domain"</strong> and input: <code class="bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-amber-400 font-bold px-1.5 py-0.5 rounded font-mono text-xs">${currentDomain}</code>.<br/>3. Re-press the Google Login button and it will authorize instantly!`;
+    errorMsgBn = `আপনি প্রজেক্টটি গিটহাব পেজে (<strong>${currentDomain}</strong>) বা আপনার নিজস্ব সার্ভার ডোমেনে হোস্ট করে চালাচ্ছেন। নিরাপত্তার কারণে ফায়ারবেস (Firebase Auth) এই ডোমেনটি থেকে গুগল লগইন সাময়িকভাবে ব্লক করেছে।<br/><br/><strong>সমাধান করার সহজ নিয়ম:</strong><br/>১. আপনার <strong>Firebase Console &rarr; Authentication &rarr; Settings &rarr; Authorized Domains</strong> অপশনে যান।<br/>২. <strong>"Add domain"</strong> এ ক্লিক করুন এবং আপনার ডোমেনটি টাইপ করে যুক্ত করুন: <code class="bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-amber-400 font-bold px-1.5 py-0.5 rounded font-mono text-xs">${currentDomain}</code>।<br/>৩. এরপর আবার গুগলে লগইন করার চেষ্টা করুন, এটি সাথে সাথে কাজ করবে!`;
+  } else if (isPopupBlocked) {
+    errorTitleEn = "Popup Window Blocked by Web Browser";
+    errorTitleBn = "ব্রাউজার পপআপ ব্লক করেছে";
+    errorMsgEn = "Your internet browser has blocked the login popup window. Please enable popups in your browser settings or run this page directly in Standard Chrome/Safari/Edge.";
+    errorMsgBn = "আপনার ব্রাউজারটি লগইন পপআপ পেজটি ব্লক করেছে। অনুগ্রহ করে ব্রাউজার সেটিংস থেকে পপআপ চালু (Allow Popups) করুন অথবা ক্রোম বা সাফারি ব্রাউজারে সাইটটি ওপেন করে চেষ্টা করুন।";
+  } else {
+    const codeStr = err && err.code ? err.code : 'auth/unknown';
+    const rawMsg = err && err.message ? err.message : JSON.stringify(err);
+    errorTitleEn = "Could Not Connect Authentication Session";
+    errorTitleBn = "ডিজিটাল সেশন শুরু করা যায়নি";
+    errorMsgEn = `An authentication issue occurred: <code class="bg-rose-50 dark:bg-slate-850 px-1 py-0.5 rounded text-rose-600 dark:text-rose-450 text-xs font-mono">${codeStr}</code>. <br/><br/>Please double check your internet connection or use <strong>Offline Guest Mode</strong> to save all entries securely on your device space.`;
+    errorMsgBn = `লগইন প্রক্রিয়ায় ত্রুটি ধরা পড়েছে: <code class="bg-rose-50 dark:bg-slate-850 px-1 py-0.5 rounded text-rose-600 dark:text-rose-450 text-xs font-mono">${codeStr}</code>। <br/><br/>অনুগ্রহ করে ইন্টারনেট চেক করুন অথবা ডেটা ডিভাইস মেমোরিতে সরাসরি সেভ করতে <strong>'অফলাইন গেস্ট মোড' (Guest Mode)</strong> চাপুন।`;
+  }
+
+  errorContainer.innerHTML = `
+    <div class="p-4 sm:p-5 rounded-xl border border-rose-200 dark:border-rose-950/40 bg-rose-50/50 dark:bg-rose-950/15 text-slate-800 dark:text-slate-205 shadow-sm animate-fade-in space-y-3 font-sans">
+      <div class="flex items-start gap-3">
+        <div class="p-1 px-1.5 rounded-lg bg-rose-100 dark:bg-rose-900/45 text-rose-600 dark:text-rose-400 mt-0.5 self-start">
+          <i data-lucide="shield-alert" class="h-4 w-4"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <h3 class="font-extrabold text-xs sm:text-sm text-rose-900 dark:text-rose-400 flex flex-col sm:flex-row sm:items-center sm:gap-2">
+            <span>${lang === 'bn' ? errorTitleBn : errorTitleEn}</span>
+            <span class="text-[9px] px-1.5 py-0.5 rounded bg-rose-100 dark:bg-rose-950/60 dark:text-rose-450 text-rose-700 font-mono font-medium mt-1 sm:mt-0 max-w-max uppercase tracking-wider">${err.code || 'error-code'}</span>
+          </h3>
+          <div class="text-[11px] sm:text-xs text-slate-650 dark:text-slate-300 mt-2 hover:text-slate-900 dark:hover:text-white transition-colors leading-relaxed font-normal">
+            ${lang === 'bn' ? errorMsgBn : errorMsgEn}
+          </div>
+        </div>
+        <button id="btn-close-auth-error-block" class="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer self-start transition-colors" title="Close warning">
+          <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+      </div>
+      <div class="flex items-center gap-1.5 pt-2 border-t border-rose-200/40 dark:border-rose-950/25 text-[10px] sm:text-[11px] text-slate-450">
+        <i data-lucide="info" class="h-3 w-3 text-indigo-500"></i>
+        <span>${lang === 'bn' ? "টিপস: অফলাইন গেস্ট ব্যবহারকালে আপনার কোনো ডাটা ডিলিট হবে না, সবই ব্রাউজারে থাকবে!" : "Tip: Switching to Guest Mode will keep all your logs saved reliably inside your personal device!"}</span>
+      </div>
+    </div>
+  `;
+
+  lucide.createIcons();
+
+  document.getElementById('btn-close-auth-error-block').addEventListener('click', () => {
+    errorContainer.classList.add('hidden');
+  });
+}
+
 // MAIN ENTRY POINT INITIALIZATION FUNCTION
 async function main() {
   // Config parameters with direct hardcoded coordinates as guaranteed fallback 
@@ -1429,16 +1497,25 @@ async function main() {
 
   document.getElementById('btn-google-login').addEventListener('click', async () => {
     try {
+      // Clear previous error message
+      const errorContainer = document.getElementById('auth-error-container');
+      if (errorContainer) errorContainer.classList.add('hidden');
+
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       console.error("Popup SignIn failed:", err);
-      alert("Sign-in failed. Please ensure popups are enabled or try using Chrome/Safari directly instead of the built-in browser view.");
+      handleAuthError(err);
     }
   });
 
   document.getElementById('btn-guest-login').addEventListener('click', () => {
     currentUser = null;
     localStorage.setItem('al_tamdin_guest_mode', 'true');
+    
+    // Clear previous error message
+    const errorContainer = document.getElementById('auth-error-container');
+    if (errorContainer) errorContainer.classList.add('hidden');
+
     loadGuestLogs();
     updateWelcomeUI();
     syncAndRenderIDCard();
@@ -1448,6 +1525,10 @@ async function main() {
     try {
       localStorage.removeItem('al_tamdin_guest_mode');
       localStorage.removeItem('al_tamdin_cached_user');
+      
+      const errorContainer = document.getElementById('auth-error-container');
+      if (errorContainer) errorContainer.classList.add('hidden');
+
       await signOut(auth);
     } catch (err) {
       console.error("SignOut failed:", err);
@@ -1463,6 +1544,10 @@ async function main() {
         displayName: firebaseUser.displayName,
         email: firebaseUser.email
       }));
+
+      // Hide auth errors on successful login
+      const errorContainer = document.getElementById('auth-error-container');
+      if (errorContainer) errorContainer.classList.add('hidden');
 
       const uRef = doc(db, 'users', firebaseUser.uid);
       onSnapshot(uRef, (snap) => {
