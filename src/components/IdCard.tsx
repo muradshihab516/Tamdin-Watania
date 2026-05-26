@@ -12,12 +12,16 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import TamdeenLogo from './TamdeenLogo';
+import { doc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 interface IdCardProps {
   id: string;
   isOpen: boolean;
   onClose: () => void;
   lang: 'bn' | 'en-ar';
+  userId?: string;
+  userDisplayName?: string | null;
 }
 
 // Code 39 encoding map (0 represents narrow, 1 represents wide element)
@@ -64,12 +68,12 @@ function getCode39BarcodeRects(text: string): { rects: { x: number; width: numbe
   return { rects, totalWidth: currentX - gapWidth };
 }
 
-export default function IdCard({ id, isOpen, onClose, lang }: IdCardProps) {
-  // Stored state for Virtual ID configuration
-  const [nameEn, setNameEn] = useState<string>(() => localStorage.getItem('tamdeen_id_name_en') || 'Shhab Md Md Md');
-  const [nameAr, setNameAr] = useState<string>(() => localStorage.getItem('tamdeen_id_name_ar') || 'شهاب مد مد مد');
-  const [cardCode, setCardCode] = useState<string>(() => localStorage.getItem('tamdeen_id_code') || '6697');
-  const [photoBase64, setPhotoBase64] = useState<string | null>(() => localStorage.getItem('tamdeen_id_photo') || null);
+export default function IdCard({ id, isOpen, onClose, lang, userId, userDisplayName }: IdCardProps) {
+  // Stored state for Virtual ID configuration (will be synced with Firestore / user-specific localStorage)
+  const [nameEn, setNameEn] = useState<string>('Employee Name');
+  const [nameAr, setNameAr] = useState<string>('الاسم الكامل');
+  const [cardCode, setCardCode] = useState<string>('6697');
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null);
   
   // UI states
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -78,26 +82,58 @@ export default function IdCard({ id, isOpen, onClose, lang }: IdCardProps) {
   const [editCode, setEditCode] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Synchronize state with LocalStorage on updates
-  useEffect(() => {
-    localStorage.setItem('tamdeen_id_name_en', nameEn);
-  }, [nameEn]);
+  // Helper to resolve key based on logged-in user or guest
+  const getLocalKey = (key: string) => userId ? `tamdeen_id_${userId}_${key}` : `tamdeen_id_guest_${key}`;
 
+  // Sync state with LocalStorage and real-time Firestore database
   useEffect(() => {
-    localStorage.setItem('tamdeen_id_name_ar', nameAr);
-  }, [nameAr]);
+    if (!isOpen) return;
 
-  useEffect(() => {
-    localStorage.setItem('tamdeen_id_code', cardCode);
-  }, [cardCode]);
+    // 1. Instantly pull from user-specific local storage for extremely snappy/offline rendering
+    const storedEn = localStorage.getItem(getLocalKey('name_en'));
+    const storedAr = localStorage.getItem(getLocalKey('name_ar'));
+    const storedCode = localStorage.getItem(getLocalKey('code'));
+    const storedPhoto = localStorage.getItem(getLocalKey('photo'));
 
-  useEffect(() => {
-    if (photoBase64) {
-      localStorage.setItem('tamdeen_id_photo', photoBase64);
-    } else {
-      localStorage.removeItem('tamdeen_id_photo');
-    }
-  }, [photoBase64]);
+    setNameEn(storedEn || (userId ? (userDisplayName || 'Worker Name') : 'Shhab Md Md Md'));
+    setNameAr(storedAr || (userId ? 'الاسم الكامل' : 'شهاب مد مد مد'));
+    setCardCode(storedCode || '6697');
+    setPhotoBase64(storedPhoto || null);
+
+    if (!userId) return;
+
+    // 2. Setup Firestore document listener to keep the user profile instantly synchronized online and offline
+    const docRef = doc(db, 'users', userId);
+    const unsubscribe = onSnapshot(docRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.nameEn) {
+          setNameEn(data.nameEn);
+          localStorage.setItem(`tamdeen_id_${userId}_name_en`, data.nameEn);
+        }
+        if (data.nameAr) {
+          setNameAr(data.nameAr);
+          localStorage.setItem(`tamdeen_id_${userId}_name_ar`, data.nameAr);
+        }
+        if (data.cardCode) {
+          setCardCode(data.cardCode);
+          localStorage.setItem(`tamdeen_id_${userId}_code`, data.cardCode);
+        }
+        if (data.photoBase64 !== undefined) {
+          setPhotoBase64(data.photoBase64);
+          if (data.photoBase64) {
+            localStorage.setItem(`tamdeen_id_${userId}_photo`, data.photoBase64);
+          } else {
+            localStorage.removeItem(`tamdeen_id_${userId}_photo`);
+          }
+        }
+      }
+    }, (error) => {
+      console.warn("UserProfile Firestore Sync snapshot error:", error);
+    });
+
+    return () => unsubscribe();
+  }, [userId, isOpen]);
 
   // Open edit mode
   const handleStartEdit = () => {
@@ -108,26 +144,78 @@ export default function IdCard({ id, isOpen, onClose, lang }: IdCardProps) {
   };
 
   // Save edits
-  const handleSaveEdit = (e: React.FormEvent) => {
+  const handleSaveEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validate containing only digits/chars supported by Code 39
     const cleanCode = editCode.trim().replace(/[^0-9A-Za-z]/g, '');
     if (!cleanCode) return;
     
-    setNameEn(editNameEn.trim() || 'Employee Name');
-    setNameAr(editNameAr.trim() || 'الاسم الكامل');
+    const finalEn = editNameEn.trim() || 'Employee Name';
+    const finalAr = editNameAr.trim() || 'الاسم الكامل';
+
+    setNameEn(finalEn);
+    setNameAr(finalAr);
     setCardCode(cleanCode);
     setIsEditing(false);
+
+    // Write to LocalStorage first (instant offline feedback)
+    localStorage.setItem(getLocalKey('name_en'), finalEn);
+    localStorage.setItem(getLocalKey('name_ar'), finalAr);
+    localStorage.setItem(getLocalKey('code'), cleanCode);
+
+    // Propagate to Firestore synchronously (queued locally if offline)
+    if (userId) {
+      try {
+        const docRef = doc(db, 'users', userId);
+        await setDoc(docRef, {
+          userId,
+          nameEn: finalEn,
+          nameAr: finalAr,
+          cardCode: cleanCode,
+          photoBase64: photoBase64,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (err) {
+        console.error("Error saving user details to Firestore:", err);
+      }
+    }
   };
 
-  // Reset to original upload info (Shhab 6697)
-  const handleResetToDefault = () => {
+  // Reset to original upload info
+  const handleResetToDefault = async () => {
     if (window.confirm(lang === 'bn' ? 'আপনি কি আদি আইডি কার্ডের তথ্যে ফিরে যেতে চান?' : 'Reset card back to default photo and worker credentials?')) {
-      setNameEn('Shhab Md Md Md');
-      setNameAr('شهاب مد مد مد');
-      setCardCode('6697');
+      const defEn = 'Shhab Md Md Md';
+      const defAr = 'شهاب مد مد مد';
+      const defCode = '6697';
+
+      setNameEn(defEn);
+      setNameAr(defAr);
+      setCardCode(defCode);
       setPhotoBase64(null);
       setIsEditing(false);
+
+      // Reset LocalStorage keys
+      localStorage.removeItem(getLocalKey('name_en'));
+      localStorage.removeItem(getLocalKey('name_ar'));
+      localStorage.removeItem(getLocalKey('code'));
+      localStorage.removeItem(getLocalKey('photo'));
+
+      // Update in Firestore
+      if (userId) {
+        try {
+          const docRef = doc(db, 'users', userId);
+          await setDoc(docRef, {
+            userId,
+            nameEn: defEn,
+            nameAr: defAr,
+            cardCode: defCode,
+            photoBase64: null,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (err) {
+          console.error("Error resetting profile on Firestore:", err);
+        }
+      }
     }
   };
 
@@ -136,10 +224,35 @@ export default function IdCard({ id, isOpen, onClose, lang }: IdCardProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 1.5 * 1024 * 1024) {
+      alert(lang === 'bn' ? 'ছবিটি অনেক বড়! দয়া করে ১.৫ এমবি এর ছোট ছবি আপলোড করুন।' : 'Image too large! Please upload a photo under 1.5MB.');
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const base64String = reader.result as string;
       setPhotoBase64(base64String);
+
+      // 1. Save in local storage
+      localStorage.setItem(getLocalKey('photo'), base64String);
+
+      // 2. Save to Firestore
+      if (userId) {
+        try {
+          const docRef = doc(db, 'users', userId);
+          await setDoc(docRef, {
+            userId,
+            nameEn,
+            nameAr,
+            cardCode,
+            photoBase64: base64String,
+            updatedAt: serverTimestamp()
+          }, { merge: true });
+        } catch (err) {
+          console.error("Error setting image on Firestore:", err);
+        }
+      }
     };
     reader.readAsDataURL(file);
   };

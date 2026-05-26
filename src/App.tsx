@@ -1040,6 +1040,8 @@ export default function App() {
         isOpen={showIdCard}
         onClose={() => setShowIdCard(false)}
         lang={lang}
+        userId={user?.uid}
+        userDisplayName={user?.displayName}
       />
 
     </div>

@@ -19,12 +19,30 @@
         "updatedAt": { "type": "string" }
       },
       "required": ["userId", "dateGregorian", "dateHijri", "company", "description", "hours", "overtime"]
+    },
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User specific custom virtual ID card credentials, name and picture.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "nameAr": { "type": "string" },
+        "cardCode": { "type": "string" },
+        "photoBase64": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "nameEn", "nameAr", "cardCode"]
     }
   },
   "firestore": {
     "workLogs/{logId}": {
       "schema": "WorkLog",
       "description": "Collection of work log records"
+    },
+    "users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Strictly isolated user specific profile documents containing virtual ID cards"
     }
   }
 }

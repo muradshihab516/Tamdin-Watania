@@ -27,6 +27,16 @@ service cloud.firestore {
         && data.overtime is number && data.overtime >= 0 && data.overtime <= 24;
     }
 
+    // Helper for UserProfile validation
+    function isValidUserProfile(data) {
+      return data != null
+        && data.userId == request.auth.uid
+        && data.nameEn is string && data.nameEn.size() >= 1 && data.nameEn.size() <= 200
+        && data.nameAr is string && data.nameAr.size() >= 1 && data.nameAr.size() <= 200
+        && data.cardCode is string && data.cardCode.size() >= 1 && data.cardCode.size() <= 64
+        && (data.photoBase64 == null || (data.photoBase64 is string && data.photoBase64.size() <= 2000000));
+    }
+
     match /workLogs/{logId} {
       allow create: if isSignedIn()
         && isValidId(logId)
@@ -47,6 +57,25 @@ service cloud.firestore {
 
       allow delete: if isSignedIn()
         && resource.data.userId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn() && userId == request.auth.uid;
+      
+      allow create: if isSignedIn()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && isValidUserProfile(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+        
+      allow update: if isSignedIn()
+        && isValidId(userId)
+        && userId == request.auth.uid
+        && resource.data.userId == request.auth.uid
+        && isValidUserProfile(request.resource.data)
+        && request.resource.data.updatedAt == request.time;
+        
+      allow delete: if false;
     }
   }
 }
