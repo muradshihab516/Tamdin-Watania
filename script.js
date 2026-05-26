@@ -24,6 +24,7 @@ import {
 // Global Application State Variables
 let app, auth, db, googleProvider;
 let currentUser = null;
+let isOnlineAuthenticated = false;
 let currentLogs = [];
 let editingLogId = null;
 
@@ -339,8 +340,13 @@ function updateWelcomeUI() {
       : `Welcome, ${currentUser.displayName || 'Valued Employee'} 👋`;
     if (welcomeTitle) welcomeTitle.innerText = welcomeText;
     if (authBadge) {
-      authBadge.innerText = lang === 'bn' ? 'সার্ভার সেশন' : 'Online Sync';
-      authBadge.className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-500/10";
+      if (isOnlineAuthenticated) {
+        authBadge.innerText = lang === 'bn' ? 'সার্ভার সেশন' : 'Online Sync';
+        authBadge.className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-500/10";
+      } else {
+        authBadge.innerText = lang === 'bn' ? 'সংরক্ষিত সেশন (অফলাইন)' : 'Cached Session (Offline)';
+        authBadge.className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400 border border-amber-500/10";
+      }
     }
     if (loginBox) loginBox.classList.add('hidden');
     if (btnLogoutNode) btnLogoutNode.classList.remove('hidden');
@@ -1535,9 +1541,42 @@ async function main() {
     }
   });
 
+  // Pre-load from cache immediately on startup to prevent flicker while Auth is loading (especially while offline)
+  const preGuestMode = localStorage.getItem('al_tamdin_guest_mode') === 'true';
+  const preCachedUser = localStorage.getItem('al_tamdin_cached_user');
+  if (!preGuestMode && preCachedUser) {
+    try {
+      currentUser = JSON.parse(preCachedUser);
+      isOnlineAuthenticated = false; 
+      const stored = localStorage.getItem(`tamdeen_user_database_${currentUser.uid}`);
+      if (stored) {
+        currentLogs = JSON.parse(stored);
+      } else {
+        currentLogs = [];
+      }
+    } catch (e) {
+      console.error("Boot cached session load failed:", e);
+      currentUser = null;
+    }
+  } else {
+    currentUser = null;
+    isOnlineAuthenticated = false;
+    const stored = localStorage.getItem('tamdeen_guest_database') || '[]';
+    try {
+      currentLogs = JSON.parse(stored);
+    } catch {
+      currentLogs = [];
+    }
+  }
+  updateWelcomeUI();
+  syncAndRenderIDCard();
+  updateStatistics();
+  renderTable();
+
   onAuthStateChanged(auth, (firebaseUser) => {
     if (firebaseUser) {
       currentUser = firebaseUser;
+      isOnlineAuthenticated = true;
       localStorage.setItem('al_tamdin_guest_mode', 'false');
       localStorage.setItem('al_tamdin_cached_user', JSON.stringify({
         uid: firebaseUser.uid,
@@ -1578,6 +1617,8 @@ async function main() {
         arr.sort((a,b) => b.timestamp - a.timestamp);
         
         currentLogs = arr;
+        localStorage.setItem(`tamdeen_user_database_${firebaseUser.uid}`, JSON.stringify(arr));
+        
         updateStatistics();
         renderTable();
       }, (error) => {
@@ -1585,16 +1626,28 @@ async function main() {
       });
 
     } else {
-      currentUser = null;
+      isOnlineAuthenticated = false;
+      const guestModeState = localStorage.getItem('al_tamdin_guest_mode') === 'true';
       const cached = localStorage.getItem('al_tamdin_cached_user');
-      if (cached) {
+      
+      if (!guestModeState && cached) {
         try {
           currentUser = JSON.parse(cached);
-          loadGuestLogs();
-        } catch {
+          const stored = localStorage.getItem(`tamdeen_user_database_${currentUser.uid}`);
+          if (stored) {
+            currentLogs = JSON.parse(stored);
+          } else {
+            currentLogs = [];
+          }
+          updateStatistics();
+          renderTable();
+        } catch (e) {
+          console.error("Failed to load cached offline user session logs:", e);
+          currentUser = null;
           loadGuestLogs();
         }
       } else {
+        currentUser = null;
         loadGuestLogs();
       }
     }
