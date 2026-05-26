@@ -1,21 +1,47 @@
 {
+  "id": "worklog-tracker-pwa",
   "name": "Work Log Tracker",
   "short_name": "WorkLog",
-  "description": "Track your work logs",
+  "description": "Track and manage your daily offline/online work logs professionally.",
   "start_url": "./",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#ffffff",
   "theme_color": "#1a73e8",
   "icons": [
     {
       "src": "./icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "./icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "./screenshot-mobile.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Work Log Tracker App Portrait Mobile Dashboard"
+    },
+    {
+      "src": "./screenshot-desktop.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Work Log Tracker App Landscape Desktop Panel"
     }
   ]
 }
