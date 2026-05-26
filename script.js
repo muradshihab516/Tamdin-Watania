@@ -1,11 +1,11 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
 import { 
   getAuth, 
   GoogleAuthProvider, 
   signInWithPopup, 
   signOut, 
   onAuthStateChanged 
-} from "firebase/auth";
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-auth.js";
 import { 
   initializeFirestore, 
   persistentLocalCache, 
@@ -18,9 +18,8 @@ import {
   setDoc,
   addDoc,
   deleteDoc,
-  serverTimestamp,
-  orderBy
-} from "firebase/firestore";
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
 // Global Application State Variables
 let app, auth, db, googleProvider;
@@ -48,7 +47,7 @@ const DICTIONARY = {
   settingsHourlyDesc: { 'en-ar': 'Used to calculate baseline wages for working hours', bn: 'এটি দিয়ে সাধারণ কার্যকালীন সময়ের মোট বেতনের হিসাব করা যাবে।' },
   settingsOtMultiplier: { 'en-ar': 'Overtime Rate Multiplier (x)', bn: 'ওভারটাইম বেতন মাল্টিপ্লায়ার (Multiplier)' },
   settingsOtDesc: { 'en-ar': 'Multiplier for overtime hours (e.g., 1.5 times)', bn: 'যেমন: ১.৫ মানে প্রতি ঘন্টা ওভারটাইমে ১.৫ গুণ বেশি বেতন পাবেন।' },
-  settingsClose: { 'en-ar': 'Close / إغلاق', bn: 'বন্ধ করুন' },
+  settingsClose: { 'en-ar': 'Save Settings / حفظ', bn: 'সেটিংস সেভ করুন' },
   statDaysTitle: { 'en-ar': 'Total Days Logged / إجمالي الأيام', bn: 'সর্বমোট কাজের দিন' },
   statDaysDesc: { 'en-ar': 'Combined calendar days worked', bn: 'মোট কাজের দিন সংখ্যা' },
   statHoursTitle: { 'en-ar': 'Duty Hours Worked / ساعات عادية', bn: 'ডিউটি আওয়ার হিসেব' },
@@ -76,7 +75,7 @@ const DICTIONARY = {
   formUpdateBtn: { 'en-ar': 'Update Work Record / تحديث', bn: 'হিসেব আপডেট করুন' },
   formSaving: { 'en-ar': 'Saving / جاري الحفظ...', bn: 'সংরক্ষণ হচ্ছে...' },
   formCancel: { 'en-ar': 'Cancel / إلغاء', bn: 'বাতিল করুন' },
-  tableTitle: { 'en-ar': 'Detailed Work History & Statements / السجل التاريخи', bn: 'কাজের সুনির্দিষ্ট হিসাব বিবরণী ও ইতিহাস' },
+  tableTitle: { 'en-ar': 'Detailed Work History & Statements / السجل التاريخي', bn: 'কাজের সুনির্দিষ্ট হিসাব বিবরণী ও ইতিহাস' },
   tableSub: { 'en-ar': 'List of latest records, tools, searching & calculations', bn: 'সম্পূর্ণ রেকর্ড তালিকা, সার্চ, ফিল্টারিং এবং অটো হিসাব টুল' },
   tableExportCsv: { 'en-ar': 'Export to CSV / تصدير CSV', bn: 'CSV এক্সপোর্ট' },
   tablePrint: { 'en-ar': 'Print Report / طباعة', bn: 'রিপোর্ট প্রিন্ট করুন' },
@@ -210,69 +209,110 @@ function formatGregorianDate(dateStr) {
   return { english, bengali };
 }
 
+// Mask Wages UI styling sincronization knob
+function updateMaskWagesUI() {
+  const btnToggleMask = document.getElementById('btn-toggle-mask-state');
+  const knob = document.getElementById('span-mask-knob');
+  if (!btnToggleMask || !knob) return;
+
+  if (hideWages) {
+    knob.style.transform = 'translateX(20px)';
+    btnToggleMask.classList.add('bg-brand-500');
+    btnToggleMask.classList.remove('bg-slate-200', 'dark:bg-slate-800');
+  } else {
+    knob.style.transform = 'translateX(0px)';
+    btnToggleMask.classList.remove('bg-brand-500');
+    btnToggleMask.classList.add('bg-slate-200', 'dark:bg-slate-800');
+  }
+}
+
 // 3. Online/Offline UI translation helper
 function translateUI() {
   const t = (key) => DICTIONARY[key] ? DICTIONARY[key][lang] : '';
   
-  document.getElementById('nav-app-title').innerText = t('appTitle');
-  document.getElementById('nav-app-subtitle').innerText = t('headerSubtitle');
-  document.getElementById('txt-lang-label').innerText = lang === 'bn' ? 'English / Arabic' : 'বাংলা';
-  document.getElementById('txt-logout').innerText = t('logout');
+  const safeSetText = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = val;
+  };
+
+  const safeSetPlaceholder = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.placeholder = val;
+  };
+
+  const safeSetHtml = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = val;
+  };
+
+  safeSetText('nav-app-title', t('appTitle'));
+  safeSetText('nav-app-subtitle', t('headerSubtitle'));
+  safeSetText('txt-lang-label', lang === 'bn' ? 'English / Arabic' : 'বাংলা');
+  safeSetText('txt-logout', t('logout'));
 
   // Stats
-  document.getElementById('stat-lbl-days').innerText = t('statDaysTitle');
-  document.getElementById('stat-desc-days').innerText = t('statDaysDesc');
-  document.getElementById('stat-lbl-hours').innerText = t('statHoursTitle');
-  document.getElementById('stat-desc-hours').innerText = t('statHoursDesc');
-  document.getElementById('stat-lbl-ot').innerText = t('statOtTitle');
-  document.getElementById('stat-desc-ot').innerText = t('statOtDesc');
-  document.getElementById('stat-lbl-wages').innerHTML = t('statEarningsTitle') + ` <i data-lucide="eye" id="icon-wages-open" class="h-3 w-3 inline cursor-pointer text-slate-400"></i>`;
-  document.getElementById('stat-desc-wages').innerText = t('statEarningsDesc');
+  safeSetText('stat-lbl-days', t('statDaysTitle'));
+  safeSetText('stat-desc-days', t('statDaysDesc'));
+  safeSetText('stat-lbl-hours', t('statHoursTitle'));
+  safeSetText('stat-desc-hours', t('statHoursDesc'));
+  safeSetText('stat-lbl-ot', t('statOtTitle'));
+  safeSetText('stat-desc-ot', t('statOtDesc'));
+  
+  const earningsLabel = document.getElementById('stat-lbl-wages');
+  if (earningsLabel) {
+    earningsLabel.innerHTML = t('statEarningsTitle') + ` <i data-lucide="eye" id="icon-wages-open" class="h-3 w-3 inline cursor-pointer text-slate-400"></i>`;
+  }
+  safeSetText('stat-desc-wages', t('statEarningsDesc'));
 
   // Form Fields Label
-  document.getElementById('lbl-form-title').innerText = editingLogId ? t('formEdit') : t('formAddNew');
-  document.getElementById('lbl-form-subtitle').innerText = editingLogId ? t('formEditDetails') : t('formRecordDetails');
-  document.getElementById('lbl-f-date').innerText = t('formDateGregorian');
-  document.getElementById('lbl-f-hijri').innerText = t('formDateHijri');
-  document.getElementById('lbl-f-company').innerText = t('formCompany');
-  document.getElementById('lbl-f-location').innerText = t('formLocation');
-  document.getElementById('lbl-f-hours').innerText = t('formHours');
-  document.getElementById('lbl-f-ot').innerText = t('formOvertime');
-  document.getElementById('lbl-presets').innerText = t('formPresets');
-  document.getElementById('lbl-f-desc').innerText = t('formDescription');
-  document.getElementById('field-description').placeholder = t('formDescriptionPlaceholder');
-  document.getElementById('lbl-f-notes').innerText = t('formNotes');
-  document.getElementById('field-notes').placeholder = t('formNotesPlaceholder');
-  document.getElementById('txt-btn-submit').innerText = editingLogId ? t('formUpdateBtn') : t('formSaveBtn');
-  document.getElementById('txt-btn-cancel').innerText = t('formCancel');
-  document.getElementById('badge-form-action').innerText = editingLogId ? 'EDIT' : 'ADD';
+  safeSetText('lbl-form-title', editingLogId ? t('formEdit') : t('formAddNew'));
+  safeSetText('lbl-form-subtitle', editingLogId ? t('formEditDetails') : t('formRecordDetails'));
+  safeSetText('lbl-f-date', t('formDateGregorian'));
+  safeSetText('lbl-f-hijri', t('formDateHijri'));
+  safeSetText('lbl-f-company', t('formCompany'));
+  safeSetText('lbl-f-location', t('formLocation'));
+  safeSetText('lbl-f-hours', t('formHours'));
+  safeSetText('lbl-f-ot', t('formOvertime'));
+  safeSetText('lbl-presets', t('formPresets'));
+  safeSetText('lbl-f-desc', t('formDescription'));
+  safeSetPlaceholder('field-description', t('formDescriptionPlaceholder'));
+  safeSetText('lbl-f-notes', t('formNotes'));
+  safeSetPlaceholder('field-notes', t('formNotesPlaceholder'));
+  safeSetText('txt-btn-submit', editingLogId ? t('formUpdateBtn') : t('formSaveBtn'));
+  safeSetText('txt-btn-cancel', t('formCancel'));
+  safeSetText('badge-form-action', editingLogId ? 'EDIT' : 'ADD');
 
   // Table header/subtitles
-  document.getElementById('lbl-tbl-title').innerText = t('tableTitle');
-  document.getElementById('lbl-tbl-subtitle').innerText = t('tableSub');
-  document.getElementById('txt-export-csv').innerText = t('tableExportCsv');
-  document.getElementById('txt-print-btn').innerText = t('tablePrint');
+  safeSetText('lbl-tbl-title', t('tableTitle'));
+  safeSetText('lbl-tbl-subtitle', t('tableSub'));
+  safeSetText('txt-export-csv', t('tableExportCsv'));
+  safeSetText('txt-print-btn', t('tablePrint'));
 
-  document.getElementById('th-date').innerText = t('tableHeaderDate');
-  document.getElementById('th-company').innerText = t('tableHeaderCompany');
-  document.getElementById('th-location').innerText = t('tableHeaderLocation');
-  document.getElementById('th-hours').innerText = t('tableHeaderHours');
-  document.getElementById('th-ot').innerText = t('tableHeaderOvertime');
-  document.getElementById('th-wages').innerText = t('tableHeaderEarnings');
-  document.getElementById('th-description').innerText = t('tableHeaderDescription');
-  document.getElementById('th-notes').innerText = t('tableHeaderNotes');
-  document.getElementById('th-actions').innerText = t('tableHeaderActions');
+  const savePngLabel = document.getElementById('txt-save-png');
+  if (savePngLabel) {
+    savePngLabel.innerText = t('tableSavePng') || 'Save PNG Report';
+  }
+
+  safeSetText('th-date', t('tableHeaderDate'));
+  safeSetText('th-company', t('tableHeaderCompany'));
+  safeSetText('th-location', t('tableHeaderLocation'));
+  safeSetText('th-hours', t('tableHeaderHours'));
+  safeSetText('th-ot', t('tableHeaderOvertime'));
+  safeSetText('th-wages', t('tableHeaderEarnings'));
+  safeSetText('th-description', t('tableHeaderDescription'));
+  safeSetText('th-notes', t('tableHeaderNotes'));
+  safeSetText('th-actions', t('tableHeaderActions'));
 
   // Settings
-  document.getElementById('lbl-set-title').innerText = t('settingsTitle');
-  document.getElementById('lbl-set-rate').innerText = t('settingsHourlyRate');
-  document.getElementById('lbl-set-rate-desc').innerText = t('settingsHourlyDesc');
-  document.getElementById('lbl-set-ot').innerText = t('settingsOtMultiplier');
-  document.getElementById('lbl-set-ot-desc').innerText = t('settingsOtDesc');
-  document.getElementById('lbl-set-save').innerText = t('settingsClose');
+  safeSetText('lbl-set-title', t('settingsTitle'));
+  safeSetText('lbl-set-rate', t('settingsHourlyRate'));
+  safeSetText('lbl-set-rate-desc', t('settingsHourlyDesc'));
+  safeSetText('lbl-set-ot', t('settingsOtMultiplier'));
+  safeSetText('lbl-set-ot-desc', t('settingsOtDesc'));
+  safeSetText('lbl-set-save', t('settingsClose'));
 
-  // Translate welcome widgets
   updateWelcomeUI();
+  updateMaskWagesUI();
   lucide.createIcons();
 }
 
@@ -281,25 +321,37 @@ function updateWelcomeUI() {
   const lblH = lang === 'bn' ? 'হিজরি:' : 'Hijri Date / هجري:';
   const lblC = lang === 'bn' ? 'ঘড়ি:' : 'Clock / الساعة:';
 
-  document.getElementById('lbl-greg-title').innerText = lblG;
-  document.getElementById('lbl-hijri-title').innerText = lblH;
-  document.getElementById('lbl-clock-title').innerText = lblC;
+  const gregEl = document.getElementById('lbl-greg-title');
+  if (gregEl) gregEl.innerText = lblG;
+  const hijriEl = document.getElementById('lbl-hijri-title');
+  if (hijriEl) hijriEl.innerText = lblH;
+  const clockEl = document.getElementById('lbl-clock-title');
+  if (clockEl) clockEl.innerText = lblC;
+
+  const authBadge = document.getElementById('auth-status-badge');
+  const welcomeTitle = document.getElementById('auth-welcome-title');
+  const loginBox = document.getElementById('auth-login-box');
+  const btnLogoutNode = document.getElementById('btn-logout');
 
   if (currentUser) {
     const welcomeText = lang === 'bn' 
       ? `স্বাগতম, ${currentUser.displayName || 'সম্মানিত কর্মী'} 👋` 
       : `Welcome, ${currentUser.displayName || 'Valued Employee'} 👋`;
-    document.getElementById('auth-welcome-title').innerText = welcomeText;
-    document.getElementById('auth-status-badge').innerText = lang === 'bn' ? 'সার্ভার সেশন' : 'Online Sync';
-    document.getElementById('auth-status-badge').className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-500/10";
-    document.getElementById('auth-login-box').classList.add('hidden');
-    document.getElementById('btn-logout').classList.remove('hidden');
+    if (welcomeTitle) welcomeTitle.innerText = welcomeText;
+    if (authBadge) {
+      authBadge.innerText = lang === 'bn' ? 'সার্ভার সেশন' : 'Online Sync';
+      authBadge.className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400 border border-emerald-500/10";
+    }
+    if (loginBox) loginBox.classList.add('hidden');
+    if (btnLogoutNode) btnLogoutNode.classList.remove('hidden');
   } else {
-    document.getElementById('auth-welcome-title').innerText = lang === 'bn' ? 'গেস্ট অ্যাকাউন্ট (অফলাইন সেশন)' : 'Offline Guest Mode Account';
-    document.getElementById('auth-status-badge').innerText = lang === 'bn' ? 'ডিভাইস অফলাইন' : 'Offline Storage';
-    document.getElementById('auth-status-badge').className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
-    document.getElementById('auth-login-box').classList.remove('hidden');
-    document.getElementById('btn-logout').classList.add('hidden');
+    if (welcomeTitle) welcomeTitle.innerText = lang === 'bn' ? 'গেস্ট অ্যাকাউন্ট (অফলাইন সেশন)' : 'Offline Guest Mode Account';
+    if (authBadge) {
+      authBadge.innerText = lang === 'bn' ? 'ডিভাইস অফলাইন' : 'Offline Storage';
+      authBadge.className = "inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400";
+    }
+    if (loginBox) loginBox.classList.remove('hidden');
+    if (btnLogoutNode) btnLogoutNode.classList.add('hidden');
   }
 }
 
@@ -331,7 +383,6 @@ function drawCode39Barcode(text) {
   const svg = document.getElementById('id-barcode-svg');
   if (!svg) return;
   
-  // Clean elements inside the SVG
   svg.innerHTML = '';
   const upperText = `*${text.trim().toUpperCase()}*`;
   let currentX = 0;
@@ -359,7 +410,6 @@ function drawCode39Barcode(text) {
     currentX += gapWidth;
   }
 
-  // Calculate total width and set viewBox dynamically
   const totalWidth = currentX - gapWidth;
   svg.setAttribute('viewBox', `0 0 ${totalWidth} ${height}`);
 
@@ -374,35 +424,69 @@ function drawCode39Barcode(text) {
   });
 }
 
-// 6. Statistics Calculations and Bento Dashboard displays
-function updateStatistics() {
-  const daysCount = currentLogs.length;
+// 5.5 Filtered Logs Helper Configuration
+function getFilteredLogs() {
+  const searchInput = document.getElementById('filter-search');
+  const monthInput = document.getElementById('filter-month');
+  const companyInput = document.getElementById('filter-company');
+  
+  const searchQuery = searchInput ? searchInput.value.toLowerCase() : '';
+  const filterMonth = monthInput ? monthInput.value : '';
+  const filterCompany = companyInput ? companyInput.value : '';
+
+  return currentLogs.filter(log => {
+    const textFields = `${log.location || ''} ${log.description || ''} ${log.notes || ''} ${log.company || ''}`.toLowerCase();
+    const matchesSearch = !searchQuery || textFields.includes(searchQuery);
+    const matchesMonth = !filterMonth || (log.dateGregorian && log.dateGregorian.startsWith(filterMonth));
+
+    let matchesCompany = true;
+    if (filterCompany) {
+      if (filterCompany === 'Other') {
+        matchesCompany = log.company !== 'Al Tamdin Al Watania' && log.company !== 'Tamdeen Sub-Contracting';
+      } else {
+        matchesCompany = log.company === filterCompany;
+      }
+    }
+
+    return matchesSearch && matchesMonth && matchesCompany;
+  });
+}
+
+// 6. Statistics Calculations and Bento Dashboard displays (supporting filtered month views)
+function updateStatistics(logsToUse = null) {
+  const targetLogs = logsToUse !== null ? logsToUse : getFilteredLogs();
+  const daysCount = targetLogs.length;
   let totalHours = 0;
   let totalOt = 0;
 
-  currentLogs.forEach(log => {
+  targetLogs.forEach(log => {
     totalHours += Number(log.hours || 0);
     totalOt += Number(log.overtime || 0);
   });
 
-  const estimatedEarnings = (totalHours * hourlyRate) + (totalOt * hourlyRate * otMultiplier);
+  const estimatedEarnings = totalOt * hourlyRate * otMultiplier;
 
   document.getElementById('stat-val-days').innerText = String(daysCount);
   document.getElementById('stat-val-hours').innerText = totalHours.toFixed(1);
   document.getElementById('stat-val-ot').innerText = totalOt.toFixed(1);
 
-  // Mask display earnings configuration
+  const wagesContainer = document.getElementById('stat-val-wages-container');
+  const wagesHidden = document.getElementById('stat-val-wages-hidden');
+  const iconOpen = document.getElementById('icon-wages-open');
+  const iconOff = document.getElementById('icon-wages-off');
+
   if (hideWages) {
-    document.getElementById('stat-val-wages-container').classList.add('hidden');
-    document.getElementById('stat-val-wages-hidden').classList.remove('hidden');
-    document.getElementById('icon-wages-open').classList.add('hidden');
-    document.getElementById('icon-wages-off').classList.remove('hidden');
+    if (wagesContainer) wagesContainer.classList.add('hidden');
+    if (wagesHidden) wagesHidden.classList.remove('hidden');
+    if (iconOpen) iconOpen.classList.add('hidden');
+    if (iconOff) iconOff.classList.remove('hidden');
   } else {
-    document.getElementById('stat-val-wages-container').classList.remove('hidden');
-    document.getElementById('stat-val-wages-hidden').classList.add('hidden');
-    document.getElementById('stat-val-wages').innerText = `${estimatedEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR`;
-    document.getElementById('icon-wages-open').classList.remove('hidden');
-    document.getElementById('icon-wages-off').classList.add('hidden');
+    if (wagesContainer) wagesContainer.classList.remove('hidden');
+    if (wagesHidden) wagesHidden.classList.add('hidden');
+    const wagesElement = document.getElementById('stat-val-wages');
+    if (wagesElement) wagesElement.innerText = `${estimatedEarnings.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR`;
+    if (iconOpen) iconOpen.classList.remove('hidden');
+    if (iconOff) iconOff.classList.add('hidden');
   }
 }
 
@@ -418,39 +502,45 @@ async function syncAndRenderIDCard() {
   const photoDisplay = document.getElementById('id-photo-display');
   const photoPlaceholder = document.getElementById('id-photo-placeholder');
 
-  // Let's get credentials from user-specific local storage first for snappy feedback
   const cardNameEn = localStorage.getItem(getLocalIdKey('name_en')) || (currentUser ? (currentUser.displayName || 'Worker Name') : 'Shhab Md Md Md');
-  const cardNameAr = localStorage.getItem(getLocalIdKey('name_ar')) || (currentUser ? 'الاسم الكامل' : 'شهاب مد مد مد');
+  const cardNameAr = localStorage.getItem(getLocalIdKey('name_ar')) || (currentUser ? 'العامل المحترم' : 'شهاب مد مد مد');
   const cardCode = localStorage.getItem(getLocalIdKey('code')) || '6697';
   const cardPhoto = localStorage.getItem(getLocalIdKey('photo'));
 
-  nameEnInput.value = cardNameEn;
-  nameArInput.value = cardNameAr;
-  codeInput.value = cardCode;
+  if (nameEnInput) nameEnInput.value = cardNameEn;
+  if (nameArInput) nameArInput.value = cardNameAr;
+  if (codeInput) codeInput.value = cardCode;
 
-  document.getElementById('id-name-en-val').innerText = cardNameEn;
-  document.getElementById('id-name-ar-val').innerText = cardNameAr;
-  document.getElementById('id-barcode-under').innerText = cardCode;
+  const displayEn = document.getElementById('id-name-en-val');
+  const displayAr = document.getElementById('id-name-ar-val');
+  const displayBarcodeText = document.getElementById('id-barcode-under');
+
+  if (displayEn) displayEn.innerText = cardNameEn;
+  if (displayAr) displayAr.innerText = cardNameAr;
+  if (displayBarcodeText) displayBarcodeText.innerText = cardCode;
+  
   drawCode39Barcode(cardCode);
 
   if (cardPhoto) {
-    photoDisplay.src = cardPhoto;
-    photoDisplay.classList.remove('hidden');
-    photoPlaceholder.classList.add('hidden');
+    if (photoDisplay) {
+      photoDisplay.src = cardPhoto;
+      photoDisplay.classList.remove('hidden');
+    }
+    if (photoPlaceholder) photoPlaceholder.classList.add('hidden');
   } else {
-    photoDisplay.classList.add('hidden');
-    photoPlaceholder.classList.remove('hidden');
+    if (photoDisplay) photoDisplay.classList.add('hidden');
+    if (photoPlaceholder) photoPlaceholder.classList.remove('hidden');
   }
 
-  // Display user login login warning for photo sync
   const warn = document.getElementById('section-id-auth-mask');
-  if (currentUser) {
-    warn.classList.add('hidden');
-  } else {
-    warn.classList.remove('hidden');
+  if (warn) {
+    if (currentUser) {
+      warn.classList.add('hidden');
+    } else {
+      warn.classList.remove('hidden');
+    }
   }
 }
-
 
 // Compress base64 images so they sit neatly inside local storage & Firestore limits (under 100KB)
 function compressImageAndSave(file) {
@@ -481,38 +571,20 @@ function compressImageAndSave(file) {
 // 8. Work Records Table Renderer (featuring search filtration & months filtering)
 function renderTable() {
   const tbody = document.getElementById('records-tbody');
+  if (!tbody) return;
+  
   tbody.innerHTML = '';
 
-  const searchQuery = document.getElementById('filter-search').value.toLowerCase();
-  const filterMonth = document.getElementById('filter-month').value; // YYYY-MM
-  const filterCompany = document.getElementById('filter-company').value;
+  const filteredLogs = getFilteredLogs();
 
-  const filteredLogs = currentLogs.filter(log => {
-    // Search site, description, or notes details
-    const textFields = `${log.location || ''} ${log.description || ''} ${log.notes || ''} ${log.company || ''}`.toLowerCase();
-    const matchesSearch = !searchQuery || textFields.includes(searchQuery);
-
-    // Month filter check
-    const matchesMonth = !filterMonth || (log.dateGregorian && log.dateGregorian.startsWith(filterMonth));
-
-    // Company filter check
-    let matchesCompany = true;
-    if (filterCompany) {
-      if (filterCompany === 'Other') {
-        matchesCompany = log.company !== 'Al Tamdin Al Watania' && log.company !== 'Tamdeen Sub-Contracting';
-      } else {
-        matchesCompany = log.company === filterCompany;
-      }
-    }
-
-    return matchesSearch && matchesMonth && matchesCompany;
-  });
+  // Dynamically update the bento cards dashboard with the overall calculations of this filtered view
+  updateStatistics(filteredLogs);
 
   if (filteredLogs.length === 0) {
     const noDataText = DICTIONARY['tableNoData'][lang] || 'No records found.';
     tbody.innerHTML = `
       <tr>
-        <td colspan="9" class="p-8 text-center text-slate-400 dark:text-slate-500 italic">
+        <td colspan="8" class="p-8 text-center text-slate-400 dark:text-slate-500 italic">
           <div class="flex flex-col items-center justify-center gap-1">
             <i data-lucide="shield-alert" class="h-5 w-5 text-slate-400 mb-1"></i>
             <span>${noDataText}</span>
@@ -524,14 +596,12 @@ function renderTable() {
     return;
   }
 
-  // Generate table rows dynamically
+  // Generate table rows dynamically (without showing any estimated wages values or calculations per row)
   filteredLogs.forEach(log => {
     const dateFormatted = formatGregorianDate(log.dateGregorian);
     const dayName = dateFormatted.english ? dateFormatted.english.split(',')[0] : '';
     const dateStr = log.dateGregorian || '';
     const rowId = log.id;
-
-    const computedEstEarnings = (Number(log.hours || 0) * hourlyRate) + (Number(log.overtime || 0) * hourlyRate * otMultiplier);
 
     const row = document.createElement('tr');
     row.className = "hover:bg-slate-100/40 dark:hover:bg-slate-900/40 transition-colors border-b border-slate-100 dark:border-slate-850 text-slate-700 dark:text-slate-300";
@@ -555,9 +625,6 @@ function renderTable() {
       <td class="p-3.5 text-center font-bold text-amber-600 dark:text-amber-400">
         ${Number(log.overtime || 0) > 0 ? `+${Number(log.overtime).toFixed(1)}` : '0.0'}
       </td>
-      <td class="p-3.5 text-right font-semibold font-mono whitespace-nowrap text-emerald-600 dark:text-emerald-400">
-        ${hideWages ? '•••• SAR' : `${computedEstEarnings.toFixed(2)} SAR`}
-      </td>
       <td class="p-3.5 max-w-xs space-y-1">
         <p class="font-semibold text-slate-800 dark:text-slate-200 leading-normal">${log.description || ''}</p>
         ${(log.translationEn && log.translationEn !== log.description) ? `<p class="text-[10px] text-slate-500 italic">En: ${log.translationEn}</p>` : ''}
@@ -565,10 +632,10 @@ function renderTable() {
       </td>
       <td class="p-3.5 text-[11px] text-slate-500 dark:text-slate-400 space-y-0.5">
         ${log.notes ? `<div class="italic">"${log.notes}"</div>` : ''}
-        ${log.supervisor ? `<div class="font-semibold text-[10px] text-emerald-600/95 dark:text-emerald-400/90 flex items-center gap-0.5"><i data-lucide="user" class="h-2.5 w-2.5"></i> ${log.supervisor}</div>` : ''}
+        ${log.supervisor ? `<div class="font-semibold text-[10px] text-emerald-600/95 dark:text-emerald-450 flex items-center gap-0.5"><i data-lucide="user" class="h-2.5 w-2.5"></i> ${log.supervisor}</div>` : ''}
       </td>
       <td class="p-3.5 text-center no-print">
-        <div class="flex items-center justify-center gap-1.5Packed">
+        <div class="flex items-center justify-center gap-1.5">
           <button class="btn-edit-record p-1.5 rounded bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/25 dark:hover:bg-blue-950/45 text-blue-600 cursor-pointer" data-id="${rowId}" title="Edit log">
             <i data-lucide="edit-3" class="h-3.5 w-3.5"></i>
           </button>
@@ -583,7 +650,6 @@ function renderTable() {
   
   lucide.createIcons();
   
-  // Attach event hooks to individual rows buttons
   document.querySelectorAll('.btn-edit-record').forEach(b => {
     b.addEventListener('click', (e) => {
       const id = b.getAttribute('data-id');
@@ -638,8 +704,6 @@ async function saveWorkLog(e) {
 
   try {
     if (currentUser) {
-      // 1. Authenticated Firestore DB save
-      const colRef = collection(db, 'workLogs');
       if (editingLogId) {
         await setDoc(doc(db, 'workLogs', editingLogId), {
           ...logData,
@@ -647,14 +711,13 @@ async function saveWorkLog(e) {
           updatedAt: serverTimestamp()
         }, { merge: true });
       } else {
-        await addDoc(colRef, {
+        await addDoc(collection(db, 'workLogs'), {
           ...logData,
           userId: currentUser.uid,
           createdAt: serverTimestamp()
         });
       }
     } else {
-      // 2. Offline LocalStorage Array manipulation for Guest Session
       let stored = JSON.parse(localStorage.getItem('tamdeen_guest_database') || '[]');
       if (editingLogId) {
         stored = stored.map(g => (g.id === editingLogId) ? { ...g, ...logData } : g);
@@ -663,12 +726,9 @@ async function saveWorkLog(e) {
         stored.push({ id: fakeId, ...logData });
       }
       localStorage.setItem('tamdeen_guest_database', JSON.stringify(stored));
-      
-      // Load Offline Logs directly
       loadGuestLogs();
     }
 
-    // Reset Form state
     resetForm();
   } catch (err) {
     console.error("Failed storing daily record entry:", err);
@@ -700,15 +760,11 @@ function startEditLog(id) {
   document.getElementById('field-description').value = chosen.description || '';
   document.getElementById('field-notes').value = chosen.notes || '';
 
-  // Show translations review frame
   document.getElementById('txt-translated-en').innerText = chosen.translationEn || '';
   document.getElementById('txt-translated-ar').innerText = chosen.translationAr || '';
   document.getElementById('translator-output-block').classList.remove('hidden');
 
-  // Activate Cancel Button
   document.getElementById('btn-form-cancel').classList.remove('hidden');
-
-  // Jump smoothly to the top form view
   document.getElementById('form-container').scrollIntoView({ behavior: 'smooth' });
 
   translateUI();
@@ -736,7 +792,6 @@ function resetForm() {
   editingLogId = null;
   document.getElementById('work-log-form').reset();
   
-  // Today's date default
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('field-date').value = today;
   document.getElementById('field-hijri').value = convertGregorianToHijri(today).arabic;
@@ -752,17 +807,14 @@ function resetForm() {
   translateUI();
 }
 
-// Loads local guest DB if not logged in
 function loadGuestLogs() {
   const data = JSON.parse(localStorage.getItem('tamdeen_guest_database') || '[]');
-  // Sort reverse chronologically
   data.sort((a,b) => b.timestamp - a.timestamp);
   currentLogs = data;
   updateStatistics();
   renderTable();
 }
 
-// CSV Dynamic generator utility download
 function exportLogsToCSV() {
   if (currentLogs.length === 0) {
     alert(lang === 'bn' ? 'রপ্তানি করার জন্য কোনো কাজের তথ্য নেই।' : 'No records available to export.');
@@ -770,11 +822,10 @@ function exportLogsToCSV() {
   }
 
   let csvContent = "data:text/csv;charset=utf-8,";
-  // CSV Headers row
   csvContent += "Date Gregorian,Date Hijri,Company,Location,Duty Hours,Overtime Hours,Estimated Earned,Description,Notes,Supervisor\n";
 
   currentLogs.forEach(entry => {
-    const est = (Number(entry.hours || 0) * hourlyRate) + (Number(entry.overtime || 0) * hourlyRate * otMultiplier);
+    const est = Number(entry.overtime || 0) * hourlyRate * otMultiplier;
     const row = [
       entry.dateGregorian || '',
       entry.dateHijri || '',
@@ -799,23 +850,31 @@ function exportLogsToCSV() {
   document.body.removeChild(link);
 }
 
-
 // MAIN ENTRY POINT INITIALIZATION FUNCTION
 async function main() {
-  // Load config file securely via local fetch API
-  let firebaseConfig;
+  // Config parameters with direct hardcoded coordinates as guaranteed fallback 
+  let firebaseConfig = {
+    projectId: "argon-arch-k07pf",
+    appId: "1:371346864380:web:53cb9f0402a61657917f79",
+    apiKey: "AIzaSyC_QwusU_BVLepqeU5tmYIje33ZLbzxZo4",
+    authDomain: "argon-arch-k07pf.firebaseapp.com",
+    firestoreDatabaseId: "ai-studio-34d566d3-d34a-4f97-a33e-771b649ed148",
+    storageBucket: "argon-arch-k07pf.firebasestorage.app",
+    messagingSenderId: "371346864380"
+  };
+
   try {
     const res = await fetch('./firebase-applet-config.json');
-    firebaseConfig = await res.json();
+    if (res.ok) {
+      const fetched = await res.json();
+      firebaseConfig = { ...firebaseConfig, ...fetched };
+    }
   } catch (err) {
-    console.error("Unable to load firebase config coordinates from workspace:", err);
-    return;
+    console.warn("Could not fetch firebase config, using hardcoded fallback config values.", err);
   }
 
-  // Bootstraps Firebase Native services using modular CDN classes
+  // Initialise
   app = initializeApp(firebaseConfig);
-  
-  // Enable offline-data synchronization using persistent caching
   db = initializeFirestore(app, {
     localCache: persistentLocalCache({
       tabManager: persistentMultipleTabManager()
@@ -825,11 +884,16 @@ async function main() {
   auth = getAuth(app);
   googleProvider = new GoogleAuthProvider();
 
-  // Load local state parameters
+  // Load config form elements
+  const sliderHrs = document.getElementById('field-hours');
+  const sliderOt = document.getElementById('field-overtime');
+  const txtHrsVal = document.getElementById('txt-hours-val');
+  const txtOtVal = document.getElementById('txt-ot-val');
+
   document.getElementById('set-hourly-rate').value = String(hourlyRate);
   document.getElementById('set-ot-multiplier').value = String(otMultiplier);
 
-  // Apply visual theme presets
+  // Theme support
   if (isDarkMode) {
     document.documentElement.classList.add('dark');
     document.getElementById('icon-theme-light').classList.remove('hidden');
@@ -840,12 +904,11 @@ async function main() {
     document.getElementById('icon-theme-dark').classList.remove('hidden');
   }
 
-  // Set default form date Gregorian to today
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('field-date').value = today;
   document.getElementById('field-hijri').value = convertGregorianToHijri(today).arabic;
 
-  // Clock Update Interval loop ticker
+  // Real Clock loop
   setInterval(() => {
     const clockNode = document.getElementById('clock-live');
     if (clockNode) {
@@ -853,39 +916,42 @@ async function main() {
     }
   }, 1000);
 
-  // Set real calendar clock descriptions
   const todayConverted = convertGregorianToHijri(today);
   const todayGFormatted = formatGregorianDate(today);
   document.getElementById('clock-gregorian').innerText = lang === 'bn' ? todayGFormatted.bengali : todayGFormatted.english;
   document.getElementById('clock-hijri').innerText = `${todayConverted.arabic} (${lang === 'bn' ? todayConverted.bengali : todayConverted.latin})`;
 
-  // Translator live input hooks
   document.getElementById('field-date').addEventListener('change', (e) => {
     const val = e.target.value;
     document.getElementById('field-hijri').value = convertGregorianToHijri(val).arabic;
   });
 
-  // Slider controls event tick updates
-  document.getElementById('field-hours').addEventListener('input', (e) => {
-    document.getElementById('txt-hours-val').innerText = `${Number(e.target.value).toFixed(1)} hrs`;
-  });
-  document.getElementById('field-overtime').addEventListener('input', (e) => {
-    document.getElementById('txt-ot-val').innerText = `${Number(e.target.value).toFixed(1)} hrs`;
-  });
+  if (sliderHrs && txtHrsVal) {
+    sliderHrs.addEventListener('input', (e) => {
+      txtHrsVal.innerText = `${Number(e.target.value).toFixed(1)} hrs`;
+    });
+  }
+  if (sliderOt && txtOtVal) {
+    sliderOt.addEventListener('input', (e) => {
+      txtOtVal.innerText = `${Number(e.target.value).toFixed(1)} hrs`;
+    });
+  }
 
-  // Apply Preset Buttons
   document.querySelectorAll('.btn-preset').forEach(btn => {
     btn.addEventListener('click', () => {
       const h = btn.getAttribute('data-h');
       const ot = btn.getAttribute('data-ot');
-      document.getElementById('field-hours').value = h;
-      document.getElementById('txt-hours-val').innerText = `${Number(h).toFixed(1)} hrs`;
-      document.getElementById('field-overtime').value = ot;
-      document.getElementById('txt-ot-val').innerText = `${Number(ot).toFixed(1)} hrs`;
+      if (sliderHrs) {
+        sliderHrs.value = h;
+        txtHrsVal.innerText = `${Number(h).toFixed(1)} hrs`;
+      }
+      if (sliderOt) {
+        sliderOt.value = ot;
+        txtOtVal.innerText = `${Number(ot).toFixed(1)} hrs`;
+      }
     });
   });
 
-  // Toggle Theme controller
   document.getElementById('btn-theme-toggle').addEventListener('click', () => {
     isDarkMode = !isDarkMode;
     if (isDarkMode) {
@@ -901,11 +967,9 @@ async function main() {
     }
   });
 
-  // Change Language Toggles
   document.getElementById('btn-lang-toggle').addEventListener('click', () => {
     lang = lang === 'bn' ? 'en-ar' : 'bn';
     localStorage.setItem('al_tamdin_lang', lang);
-    // Refresh date layout
     const tG = formatGregorianDate(document.getElementById('field-date').value);
     document.getElementById('clock-gregorian').innerText = lang === 'bn' ? tG.bengali : tG.english;
     
@@ -914,7 +978,6 @@ async function main() {
     renderTable();
   });
 
-  // Quick Forms trigger Translate block
   document.getElementById('btn-auto-translate').addEventListener('click', async () => {
     const descText = document.getElementById('field-description').value;
     if (!descText) return;
@@ -932,9 +995,9 @@ async function main() {
 
     btn.disabled = false;
     btn.innerHTML = orig;
+    lucide.createIcons();
   });
 
-  // Settings Save Callback
   document.getElementById('settings-form').addEventListener('submit', (e) => {
     e.preventDefault();
     hourlyRate = Number(document.getElementById('set-hourly-rate').value || '15');
@@ -947,7 +1010,6 @@ async function main() {
     renderTable();
   });
 
-  // Modal controls triggers
   document.getElementById('btn-settings-open').addEventListener('click', () => {
     document.getElementById('settings-modal').classList.remove('hidden');
   });
@@ -955,33 +1017,26 @@ async function main() {
     document.getElementById('settings-modal').classList.add('hidden');
   });
 
-  // Bento mask toggling hook
+  // Mask status changes
   document.getElementById('card-estimated-wages').addEventListener('click', (e) => {
-    // ignore clicks on the eye icon alone, standard toggle handled
     hideWages = !hideWages;
     localStorage.setItem('al_tamdin_hide_wages', String(hideWages));
     updateStatistics();
+    updateMaskWagesUI();
     renderTable();
   });
 
   document.getElementById('btn-toggle-mask-state').addEventListener('click', () => {
     hideWages = !hideWages;
     localStorage.setItem('al_tamdin_hide_wages', String(hideWages));
-    const knob = document.getElementById('span-mask-knob');
-    if (hideWages) {
-      knob.style.transform = 'translateX(0px)';
-    } else {
-      knob.style.transform = 'translateX(20px)';
-    }
     updateStatistics();
+    updateMaskWagesUI();
     renderTable();
   });
 
-  // Forms management handlers
   document.getElementById('work-log-form').addEventListener('submit', saveWorkLog);
   document.getElementById('btn-form-cancel').addEventListener('click', resetForm);
 
-  // Digital Badge Modal links
   document.getElementById('btn-idcard-open').addEventListener('click', () => {
     document.getElementById('idcard-modal').classList.remove('hidden');
     syncAndRenderIDCard();
@@ -990,7 +1045,6 @@ async function main() {
     document.getElementById('idcard-modal').classList.add('hidden');
   });
 
-  // Photo uploads hooks inside visual Badge
   document.getElementById('btn-photo-trigger').addEventListener('click', () => {
     document.getElementById('id-photo-file').click();
   });
@@ -1005,44 +1059,316 @@ async function main() {
   document.getElementById('btn-photo-remove').addEventListener('click', () => {
     localStorage.removeItem(getLocalIdKey('photo'));
     syncAndRenderIDCard();
-    
-    // update Firestore too if user is authenticated
     if (currentUser) {
       const uRef = doc(db, 'users', currentUser.uid);
-      setDoc(uRef, { photoBase64: null, updatedAt: serverTimestamp() }, { merge: true });
+      setDoc(uRef, { photoBase64: null }, { merge: true });
     }
   });
 
-  // Capture Screenshot/Save Badge layout as local PNG
+  // Save ID Card Badge PNG Screenshot
   document.getElementById('btn-id-download').addEventListener('click', () => {
     const node = document.getElementById('badge-capture-container');
+    const b = document.getElementById('btn-id-download');
+    b.disabled = true;
+    const orig = b.innerHTML;
+    b.innerHTML = `<i data-lucide="loader-2" class="h-3 w-3 animate-spin"></i> Saving...`;
+    lucide.createIcons();
+
     html2canvas(node, {
-      scale: 3, // Premium ultra-high definition PDF scaling factor
+      scale: 3,
       useCORS: true,
       allowTaint: true
     }).then(canvas => {
       const dataUrl = canvas.toDataURL('image/png');
       const hrefLink = document.createElement('a');
-      hrefLink.download = `Tamdeen_Badge_${document.getElementById('id-name-en-val').innerText.trim()}_${Date.now()}.png`;
+      hrefLink.download = `Tamdeen_Badge_${(document.getElementById('id-name-en-val').innerText || 'Worker').trim()}_${Date.now()}.png`;
       hrefLink.href = dataUrl;
       document.body.appendChild(hrefLink);
       hrefLink.click();
       document.body.removeChild(hrefLink);
+    }).finally(() => {
+      b.disabled = false;
+      b.innerHTML = orig;
+      lucide.createIcons();
     });
   });
 
-  // ID Card Detail save
+  // Save Report Statement Table PNG Screenshot in executive-level white paper layout
+  document.getElementById('btn-save-as-png').addEventListener('click', () => {
+    const b = document.getElementById('btn-save-as-png');
+    b.disabled = true;
+    const orig = b.innerHTML;
+    b.innerHTML = `<i data-lucide="loader-2" class="h-4 w-4 animate-spin text-emerald-500"></i> Saving...`;
+    lucide.createIcons();
+
+    // 1. Filter current logs exactly like how they are filtered on the screen
+    const searchQuery = document.getElementById('filter-search').value.toLowerCase();
+    const filterMonth = document.getElementById('filter-month').value; // YYYY-MM
+    const filterCompany = document.getElementById('filter-company').value;
+
+    const filteredLogs = currentLogs.filter(log => {
+      const textFields = `${log.location || ''} ${log.description || ''} ${log.notes || ''} ${log.company || ''}`.toLowerCase();
+      const matchesSearch = !searchQuery || textFields.includes(searchQuery);
+      const matchesMonth = !filterMonth || (log.dateGregorian && log.dateGregorian.startsWith(filterMonth));
+
+      let matchesCompany = true;
+      if (filterCompany) {
+        if (filterCompany === 'Other') {
+          matchesCompany = log.company !== 'Al Tamdin Al Watania' && log.company !== 'Tamdeen Sub-Contracting';
+        } else {
+          matchesCompany = log.company === filterCompany;
+        }
+      }
+
+      return matchesSearch && matchesMonth && matchesCompany;
+    });
+
+    // 2. Fetch employee details from ID badge logic
+    const cardNameEn = localStorage.getItem(getLocalIdKey('name_en')) || (currentUser ? (currentUser.displayName || 'Valued Worker') : 'Shhab Md Md Md');
+    const cardNameAr = localStorage.getItem(getLocalIdKey('name_ar')) || (currentUser ? 'العامل المحترم' : 'شهاب مد مد مد');
+    const cardCode = localStorage.getItem(getLocalIdKey('code')) || '6697';
+
+    // 3. Calculate statistics over these filtered values
+    let totalHours = 0;
+    let totalOt = 0;
+    filteredLogs.forEach(entry => {
+      totalHours += Number(entry.hours || 0);
+      totalOt += Number(entry.overtime || 0);
+    });
+    const estOtWages = totalOt * hourlyRate * otMultiplier;
+
+    // 4. Formulate the Statement period label
+    let statementPeriod = 'ALL RECORDED PERIODS';
+    if (filterMonth) {
+      const [year, month] = filterMonth.split('-');
+      const monthNames = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'
+      ];
+      statementPeriod = `${monthNames[parseInt(month) - 1].toUpperCase()} ${year}`;
+    }
+
+    const todayDateStr = new Date().toISOString().split('T')[0];
+    const hijriConverted = convertGregorianToHijri(todayDateStr);
+
+    // 5. Construct highly polished HTML template wrapper representing legal paper statement report
+    const paperReport = document.createElement('div');
+    paperReport.id = 'dynamic-paper-report-export';
+    paperReport.className = 'bg-white text-slate-900 p-8 flex flex-col font-sans';
+    // Style element so it renders beautifully in standard dimensions offscreen without bloating page size
+    paperReport.style.position = 'absolute';
+    paperReport.style.left = '-9999px';
+    paperReport.style.top = '0';
+    paperReport.style.width = '1000px';
+    paperReport.style.boxSizing = 'border-box';
+
+    // Populate paper template with exact official design blocks
+    let rowsHtml = '';
+    if (filteredLogs.length === 0) {
+      rowsHtml = `
+        <tr>
+          <td colspan="6" class="border border-slate-300 p-6 text-center italic text-slate-400 text-xs">
+            No work records matched your filters.
+          </td>
+        </tr>
+      `;
+    } else {
+      filteredLogs.forEach(log => {
+        const formattedDate = formatGregorianDate(log.dateGregorian).english;
+        const dayWord = formattedDate ? formattedDate.split(',')[0] : '';
+        
+        rowsHtml += `
+          <tr class="border-b border-slate-300 text-[11px] text-slate-800 leading-normal">
+            <td class="border border-slate-300 p-2 font-mono whitespace-nowrap">
+              <div class="font-bold text-slate-950">${log.dateGregorian || ''}</div>
+              <div class="text-[9px] text-slate-550 font-sans mt-0.5">${dayWord} / ${log.dateHijri || ''}</div>
+            </td>
+            <td class="border border-slate-300 p-2 font-semibold">
+              ${log.company || 'Al Tamdin Al Watania'}
+            </td>
+            <td class="border border-slate-300 p-2">
+              <div class="text-slate-700 font-medium">${log.location || 'Not Specified'}</div>
+            </td>
+            <td class="border border-slate-300 p-2 text-center font-bold">
+              ${Number(log.hours || 0).toFixed(1)}
+            </td>
+            <td class="border border-slate-300 p-2 text-center font-bold text-indigo-700">
+              ${Number(log.overtime || 0).toFixed(1)}
+            </td>
+            <td class="border border-slate-300 p-2 text-left space-y-1 max-w-[280px]">
+              <div class="font-semibold text-slate-900 leading-normal">${log.description || ''}</div>
+              ${(log.translationEn && log.translationEn !== log.description) ? `<div class="text-[9px] text-slate-500 italic">En: ${log.translationEn}</div>` : ''}
+              ${log.translationAr ? `<div class="text-[9px] text-slate-550 text-right dir-rtl">Ar: ${log.translationAr}</div>` : ''}
+              ${log.notes ? `<div class="text-[9px] text-slate-500 italic border-t border-slate-100 pt-0.5">Note: ${log.notes}</div>` : ''}
+              ${log.supervisor ? `<div class="text-[9px] font-bold text-emerald-600">Supv: ${log.supervisor}</div>` : ''}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    paperReport.innerHTML = `
+      <!-- BRAND LETTERHEAD HEADER -->
+      <div class="flex items-start justify-between border-b-4 border-slate-900 pb-4 mb-5">
+        <div class="flex items-center gap-4">
+          <!-- Corporate Vector Logo -->
+          <div class="flex items-center justify-center p-3 rounded-xl bg-slate-900 text-white w-14 h-14 shadow-sm">
+            <svg class="w-9 h-9" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+          </div>
+          <div>
+            <h1 class="font-extrabold text-2xl tracking-wider text-slate-900 leading-none">AL TAMDIN AL WATANIA</h1>
+            <p class="font-bold text-xs tracking-wide text-slate-700 mt-1 uppercase">شركة التمدين الوطنية للمقاولات العامة والتشغيل</p>
+            <p class="text-[10px] text-slate-500 mt-0.5">Kingdom of Saudi Arabia (الخدمات التخصصية بالعمل والمقاولات)</p>
+          </div>
+        </div>
+        <div class="text-right">
+          <div class="inline-block bg-slate-100 text-slate-900 border border-slate-300 font-bold px-3 py-1 text-[10px] uppercase tracking-widest rounded-md">
+            OFFICIAL LOGS STATEMENT
+          </div>
+          <p class="text-xs text-slate-700 font-bold mt-2 uppercase">Period: ${statementPeriod}</p>
+          <p class="text-[10px] text-slate-500 mt-1">${todayDateStr} | ${hijriConverted.arabic}</p>
+        </div>
+      </div>
+
+      <!-- WORKER DETAILS & ACCOUNT INFO -->
+      <div class="grid grid-cols-2 gap-4 p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs mb-5">
+        <div>
+          <h2 class="font-extrabold text-slate-905 uppercase tracking-wider text-[10px] text-slate-400 mb-1.5">Employee Information / معلومات الموظف</h2>
+          <div class="space-y-1">
+            <p class="text-slate-800"><span class="font-semibold text-slate-500">Name (English):</span> <span class="font-bold text-slate-950">${cardNameEn}</span></p>
+            <p class="text-slate-800"><span class="font-semibold text-slate-500">Name (Arabic):</span> <span class="font-bold text-slate-950">${cardNameAr}</span></p>
+            <p class="text-slate-800"><span class="font-semibold text-slate-500">ID / Badge Code:</span> <span class="font-bold font-mono text-slate-950 text-indigo-700">${cardCode}</span></p>
+          </div>
+        </div>
+        <div class="border-l border-slate-200 pl-4">
+          <h2 class="font-extrabold text-slate-905 uppercase tracking-wider text-[10px] text-slate-400 mb-1.5">Document Metadata / بيانات التوثيق</h2>
+          <div class="space-y-1">
+            <p class="text-slate-800"><span class="font-semibold text-slate-500">Document Ref ID:</span> <span class="font-mono text-slate-950 font-bold">ATW-${cardCode}-${Date.now().toString().slice(-6)}</span></p>
+            <p class="text-slate-800"><span class="font-semibold text-slate-500">Export Method:</span> <span class="text-slate-900 font-medium">Standard Digital Document Sheet</span></p>
+            <p class="text-slate-800"><span class="font-semibold text-slate-500">Wage Estimation Base:</span> <span class="text-slate-900 font-bold">${hourlyRate} SAR/hr | Overtime Rate: ${otMultiplier}x</span></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- OVERVIEW BENTO STATS -->
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+          <p class="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Total Work Days</p>
+          <p class="text-base font-extrabold text-slate-900 mt-0.5">${filteredLogs.length} Days</p>
+          <p class="text-[8px] text-slate-500 mt-0.5">সব দিন এন্ট্রি</p>
+        </div>
+        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-center">
+          <p class="text-[9px] font-bold text-slate-450 uppercase tracking-wider">Duty Hours</p>
+          <p class="text-base font-extrabold text-slate-900 mt-0.5">${totalHours.toFixed(1)} Hrs</p>
+          <p class="text-[8px] text-slate-500 mt-0.5">সাধারণ ডিউটি ঘন্টা</p>
+        </div>
+        <div class="p-3 bg-amber-50 rounded-lg border border-amber-200 text-center">
+          <p class="text-[9px] font-bold text-amber-800 uppercase tracking-wider">Overtime Hours</p>
+          <p class="text-base font-extrabold text-amber-900 mt-0.5">+${totalOt.toFixed(1)} Hrs</p>
+          <p class="text-[8px] text-amber-700 mt-0.5">মোট অতিরিক্ত সময়</p>
+        </div>
+        <div class="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-center">
+          <p class="text-[9px] font-bold text-emerald-800 uppercase tracking-wider">OT Estim. Earnings</p>
+          <p class="text-base font-extrabold text-emerald-950 mt-0.5">${estOtWages.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SAR</p>
+          <p class="text-[8px] text-emerald-700 mt-0.5">ওভারটাইমের মোট বেতন</p>
+        </div>
+      </div>
+
+      <!-- DATA STATEMENT TABLE (COMPACT SMALL MARGINS) -->
+      <div class="mb-6">
+        <table class="w-full text-left text-xs border-collapse border border-slate-300">
+          <thead>
+            <tr class="bg-slate-100 text-slate-900 font-bold text-[10px] tracking-wider uppercase border-b border-slate-300">
+              <th class="border border-slate-300 p-2 text-left" style="width: 13%">Date Gregorian</th>
+              <th class="border border-slate-300 p-2 text-left" style="width: 15%">Company</th>
+              <th class="border border-slate-300 p-2 text-left" style="width: 15%">Site Location</th>
+              <th class="border border-slate-300 p-2 text-center" style="width: 11%">Duty Hrs</th>
+              <th class="border border-slate-300 p-2 text-center" style="width: 11%">OT Hrs</th>
+              <th class="border border-slate-300 p-2 text-left" style="width: 35%">Work Duties & Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+            <!-- TABLE SUMMARY ROW WITH DOUBLE BORDER FOOTER STYLE -->
+            <tr class="bg-slate-50 font-bold border-t-2 border-slate-800 text-xs text-slate-900">
+              <td colspan="3" class="border border-slate-300 p-2 text-left uppercase">
+                Statement Summarized Totals:
+              </td>
+              <td class="border border-slate-300 p-2 text-center font-mono">
+                ${totalHours.toFixed(1)}
+              </td>
+              <td class="border border-slate-300 p-2 text-center font-mono text-indigo-700">
+                ${totalOt.toFixed(1)}
+              </td>
+              <td class="border border-slate-300 p-2 text-slate-500 font-normal italic text-[10px]">
+                Calculated Overtime Hours Compensation Only. Standard monthly basic salary not added to tabular rows.
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PROFESSIONAL SIGNATURES BLOCK -->
+      <div class="grid grid-cols-2 gap-8 pt-10 pb-4">
+        <div class="text-center">
+          <div class="border-b border-slate-300 w-48 mx-auto pb-8"></div>
+          <p class="text-[10px] font-bold text-slate-500 mt-2">Worker Signature / توقيع الموظف</p>
+        </div>
+        <div class="text-center">
+          <div class="border-b border-slate-300 w-48 mx-auto pb-8"></div>
+          <p class="text-[10px] font-bold text-slate-500 mt-2">Official Supervisor Seal & Signature / ختم واعتماد الشركة</p>
+        </div>
+      </div>
+
+      <!-- DOCUMENT SUBFOOTER -->
+      <div class="border-t border-slate-200 pt-3 text-center text-[9px] text-slate-400 flex items-center justify-between">
+        <span>* Verified Personal Work Record - Digital Snapshot Sheet - Al Tamdin Al Watania *</span>
+        <span class="font-mono">Reference ID: REF-TAM-${cardCode}-${Date.now().toString().slice(-4)}</span>
+      </div>
+    `;
+
+    document.body.appendChild(paperReport);
+
+    // Give browser a brief moment to render, then call html2canvas
+    setTimeout(() => {
+      html2canvas(paperReport, {
+        scale: 2.2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false
+      }).then(canvas => {
+        const dataUrl = canvas.toDataURL('image/png');
+        const hrefLink = document.createElement('a');
+        hrefLink.download = `Al_Tamdin_Work_Statement_${cardNameEn.replace(/\s+/g, '_')}_${Date.now()}.png`;
+        hrefLink.href = dataUrl;
+        document.body.appendChild(hrefLink);
+        hrefLink.click();
+        document.body.removeChild(hrefLink);
+      }).catch(err => {
+        console.error("HTML2Canvas compilation failed:", err);
+        alert('Could not save template paper report as PNG image.');
+      }).finally(() => {
+        document.body.removeChild(paperReport);
+        b.disabled = false;
+        b.innerHTML = orig;
+        lucide.createIcons();
+      });
+    }, 150);
+  });
+
+  // Save ID Card details
   document.getElementById('btn-id-save-db').addEventListener('click', async () => {
     const nameEn = document.getElementById('id-edit-en').value.trim();
     const nameAr = document.getElementById('id-edit-ar').value.trim();
     const code = document.getElementById('id-edit-code').value.trim();
     
-    // Update Local values first
     localStorage.setItem(getLocalIdKey('name_en'), nameEn);
     localStorage.setItem(getLocalIdKey('name_ar'), nameAr);
     localStorage.setItem(getLocalIdKey('code'), code);
 
-    // Save on Snapshot update and upload to Firestore user record if logged in
     if (currentUser) {
       try {
         const uRef = doc(db, 'users', currentUser.uid);
@@ -1052,8 +1378,7 @@ async function main() {
           nameEn: nameEn,
           nameAr: nameAr,
           cardCode: code,
-          photoBase64: photo,
-          updatedAt: serverTimestamp()
+          photoBase64: photo
         }, { merge: true });
         
         alert(lang === 'bn' ? 'তথ্য সফলভাবে সার্ভারে সেভ হয়েছে!' : 'Details synced & secured on Firestore database!');
@@ -1083,8 +1408,7 @@ async function main() {
         nameEn: currentUser.displayName || 'Worker Name',
         nameAr: 'الاسم الكامل',
         cardCode: '6697',
-        photoBase64: null,
-        updatedAt: serverTimestamp()
+        photoBase64: null
       }, { merge: true });
     }
 
@@ -1092,7 +1416,6 @@ async function main() {
     alert('Restored Card template.');
   });
 
-  // Exports & Prints
   document.getElementById('btn-export-csv').addEventListener('click', exportLogsToCSV);
   
   document.getElementById('btn-print-report').addEventListener('click', () => {
@@ -1100,17 +1423,16 @@ async function main() {
     window.print();
   });
 
-  // Filters inputs listeners
   document.getElementById('filter-search').addEventListener('input', renderTable);
   document.getElementById('filter-month').addEventListener('change', renderTable);
   document.getElementById('filter-company').addEventListener('change', renderTable);
 
-  // Authenticate Google PopUp SignIn Trigger links
   document.getElementById('btn-google-login').addEventListener('click', async () => {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (err) {
       console.error("Popup SignIn failed:", err);
+      alert("Sign-in failed. Please ensure popups are enabled or try using Chrome/Safari directly instead of the built-in browser view.");
     }
   });
 
@@ -1132,7 +1454,6 @@ async function main() {
     }
   });
 
-  // REAL REALTIME AUTH ACTIVE LISTENER STATE OBSERVER
   onAuthStateChanged(auth, (firebaseUser) => {
     if (firebaseUser) {
       currentUser = firebaseUser;
@@ -1143,7 +1464,6 @@ async function main() {
         email: firebaseUser.email
       }));
 
-      // Setup Listeners for Firestore Profile Card sync
       const uRef = doc(db, 'users', firebaseUser.uid);
       onSnapshot(uRef, (snap) => {
         if (snap.exists()) {
@@ -1160,7 +1480,6 @@ async function main() {
         }
       });
 
-      // Synchronize in real-time user-specific WorkLogs listings from Firestore (offline cached support integrated)
       const q = query(
         collection(db, 'workLogs'), 
         where('userId', '==', firebaseUser.uid)
@@ -1171,25 +1490,22 @@ async function main() {
         snapshot.forEach(docSnap => {
           arr.push({ id: docSnap.id, ...docSnap.data() });
         });
-        
-        // Sort reverse chronologically by timestamp
         arr.sort((a,b) => b.timestamp - a.timestamp);
         
         currentLogs = arr;
         updateStatistics();
         renderTable();
       }, (error) => {
-        console.error("Realtime Logs snapshot sync failure: ", error);
+        console.error("Realtime Logs snapshot failure: ", error);
       });
 
     } else {
       currentUser = null;
-      // If we have cached logins, load them or fallback to Guest session
       const cached = localStorage.getItem('al_tamdin_cached_user');
       if (cached) {
         try {
           currentUser = JSON.parse(cached);
-          loadGuestLogs(); // fallback
+          loadGuestLogs();
         } catch {
           loadGuestLogs();
         }
@@ -1206,5 +1522,4 @@ async function main() {
   translateUI();
 }
 
-// Fire up core setup when browser DOM completes loading
 window.addEventListener('DOMContentLoaded', main);
