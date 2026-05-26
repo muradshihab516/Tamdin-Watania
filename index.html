@@ -1,14 +1,742 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My Google AI Studio App</title>
-    <script type="module" crossorigin src="./assets/index-C0AJHDTr.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DcQmH3at.css">
+    <title>Al Tamdin Al Watania Work Log System</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    
+    <!-- Tailwind CSS Play CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'Noto Sans Bengali', 'sans-serif'],
+              display: ['Space Grotesk', 'sans-serif'],
+            },
+            colors: {
+              brand: {
+                50: '#fbf9f4',
+                100: '#f4ede1',
+                500: '#b28d46', /* Elegant Gold */
+                600: '#9d7634',
+                900: '#4c3919',
+              }
+            }
+          }
+        }
+      }
+    </script>
+
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- html2canvas for PDF/PNG export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <style>
+      /* Base font transitions and smooth switches */
+      body {
+        font-family: 'Inter', 'Noto Sans Bengali', sans-serif;
+      }
+      .font-display {
+        font-family: 'Space Grotesk', sans-serif;
+      }
+      /* Custom print styles to guarantee an executive-level paper report output */
+      @media print {
+        body {
+          background-color: white !important;
+          color: black !important;
+          font-size: 11px !important;
+        }
+        
+        .no-print,
+        button,
+        form,
+        #form-container,
+        #header-nav,
+        #bento-stats,
+        #search-filter-controls,
+        #id-card-modal,
+        #settings-modal,
+        footer {
+          display: none !important;
+        }
+
+        .print-only {
+          display: block !important;
+        }
+
+        /* Force table columns to wrap and display cleanly */
+        table {
+          width: 100% !important;
+          border: 1px solid #cbd5e1 !important;
+          border-collapse: collapse !important;
+        }
+
+        th, td {
+          border: 1px solid #94a3b8 !important;
+          padding: 8px !important;
+          color: black !important;
+        }
+
+        /* Prevent page breaks inside cards or table rows */
+        tr {
+          page-break-inside: avoid !important;
+        }
+
+        /* Reset container margins/paddings */
+        main {
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-lwPp18MI.js"></script>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100 min-h-screen pb-16 antialiased selection:bg-brand-500 selection:text-white">
+
+    <!-- Print Only Letterhead Header -->
+    <div class="print-only hidden mb-8 border-b-2 border-slate-800 pb-4">
+      <div class="flex justify-between items-center">
+        <div>
+          <h1 class="text-xl font-bold font-display uppercase tracking-wider text-slate-900">Al Tamdin Al Watania</h1>
+          <p class="text-xs text-slate-500">Contracting & Contracting Services Company</p>
+          <p class="text-xs text-slate-400">Riyadh, Kingdom of Saudi Arabia</p>
+        </div>
+        <div class="text-right">
+          <h2 class="text-md font-bold text-slate-800">DAILY WORK LOG REPORT</h2>
+          <p class="text-xs text-slate-500" id="print-report-date">Generated on: </p>
+          <p class="text-xs text-slate-400">Independent Personal Statement</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAIN NAVBAR (no-print) -->
+    <header id="header-nav" class="no-print sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/80 backdrop-blur dark:border-slate-800/80 dark:bg-slate-950/80 transition-all">
+      <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        
+        <!-- Brand Name -->
+        <div class="flex items-center gap-3">
+          <div class="p-2 bg-gradient-to-tr from-brand-600 to-amber-500 rounded-lg shadow-sm text-white">
+            <i data-lucide="briefcase" class="h-5 w-5"></i>
+          </div>
+          <div>
+            <h1 class="text-md sm:text-lg font-bold font-display tracking-tight text-slate-900 dark:text-white" id="nav-app-title">
+              Al Tamdin Al Watania Work Log
+            </h1>
+            <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium" id="nav-app-subtitle">
+              Personal independent work log recorder
+            </p>
+          </div>
+        </div>
+
+        <!-- Controls Block -->
+        <div class="flex items-center gap-2 sm:gap-4">
+          <!-- Language Mode Toggle -->
+          <button id="btn-lang-toggle" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all border border-slate-200 dark:border-slate-700 cursor-pointer">
+            <i data-lucide="globe-2" class="h-3.5 w-3.5"></i>
+            <span id="txt-lang-label">বাংলা</span>
+          </button>
+
+          <!-- Light/Dark Mode Toggle -->
+          <button id="btn-theme-toggle" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all border border-slate-200 dark:border-slate-700 cursor-pointer" title="Toggle Theme">
+            <i data-lucide="sun" id="icon-theme-light" class="h-4 w-4 hidden"></i>
+            <i data-lucide="moon" id="icon-theme-dark" class="h-4 w-4"></i>
+          </button>
+
+          <!-- Settings Button -->
+          <button id="btn-settings-open" class="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all border border-slate-200 dark:border-slate-700 cursor-pointer" title="Salary Settings">
+            <i data-lucide="settings" class="h-4 w-4"></i>
+          </button>
+
+          <!-- Digital Badge ID Card Key -->
+          <button id="btn-idcard-open" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-brand-500 hover:bg-brand-600 text-white shadow-md transition-all cursor-pointer">
+            <i data-lucide="credit-card" class="h-3.5 w-3.5"></i>
+            <span id="btn-idcard-text">ID Badge</span>
+          </button>
+
+          <!-- Logout Button (Initially Hidden until Auth loads) -->
+          <button id="btn-logout" class="hidden flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-all cursor-pointer">
+            <i data-lucide="log-out" class="h-3.5 w-3.5"></i>
+            <span id="txt-logout">Log Out</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT WRAPPER -->
+    <main class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+
+      <!-- WELCOME BOX & LIVE TIME CLOCK (no-print) -->
+      <section id="intro-panel" class="no-print mb-8 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <!-- User Profile Details / Auth Login State Card -->
+          <div id="auth-state-box" class="flex items-center gap-4">
+            <!-- Avatar skeleton -->
+            <div class="relative h-12 w-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700 shadow-inner">
+              <i data-lucide="user-check" class="h-6 w-6 text-slate-400"></i>
+              <div class="absolute bottom-0 right-0 h-3 w-3 rounded-full bg-slate-400 border-2 border-white dark:border-slate-900" id="network-dot"></div>
+            </div>
+            <div>
+              <h2 class="text-base font-bold tracking-tight text-slate-950 dark:text-white" id="auth-welcome-title">Loading system session...</h2>
+              <div class="flex items-center gap-1.5 mt-0.5">
+                <span class="inline-flex items-center rounded-full px-1.5 py-0.5 text-xs font-medium bg-slate-150 dark:bg-slate-800 text-slate-600 dark:text-slate-400" id="auth-status-badge">
+                  Checking Auth
+                </span>
+                <span id="txt-sync-status" class="text-[11px] text-slate-400 dark:text-slate-500 font-mono">Offline cache active</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Realtime Date Widget -->
+          <div class="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-3 flex flex-col sm:flex-row sm:items-center gap-4 border border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-2">
+              <i data-lucide="calendar" class="h-4 w-4 text-brand-500"></i>
+              <div class="text-xs">
+                <span class="text-slate-400 dark:text-slate-500 block uppercase tracking-wider font-semibold text-[9px]" id="lbl-greg-title">Today</span>
+                <span id="clock-gregorian" class="font-bold text-slate-700 dark:text-slate-300">Evaluating date...</span>
+              </div>
+            </div>
+            <div class="h-px sm:h-8 w-full sm:w-px bg-slate-200 dark:bg-slate-800"></div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="calendar-days" class="h-4 w-4 text-amber-500"></i>
+              <div class="text-xs">
+                <span class="text-slate-400 dark:text-slate-500 block uppercase tracking-wider font-semibold text-[9px]" id="lbl-hijri-title">Hijri Date</span>
+                <span id="clock-hijri" class="font-bold text-slate-700 dark:text-slate-300">Calculating...</span>
+              </div>
+            </div>
+            <div class="h-px sm:h-8 w-full sm:w-px bg-slate-200 dark:bg-slate-800"></div>
+            <div class="flex items-center gap-2">
+              <i data-lucide="clock" class="h-4 w-4 text-emerald-500"></i>
+              <div class="text-xs">
+                <span class="text-slate-400 dark:text-slate-500 block uppercase tracking-wider font-semibold text-[9px]" id="lbl-clock-title">Live Clock</span>
+                <span id="clock-live" class="font-bold font-mono text-emerald-600 dark:text-emerald-400">00:00:00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Google SignIn Block (Shown only if logged out) -->
+        <div id="auth-login-box" class="hidden mt-6 border-t border-slate-150 dark:border-slate-800/60 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
+          <div class="text-xs text-slate-500 max-w-xl">
+            <span class="font-bold block text-slate-700 dark:text-slate-300 mb-1" id="lbl-sync-head">Cloud Database Synchronization (সার্ভার সিনক্রোনাইজেশন)</span>
+            <span id="lbl-sync-desc">Log in with Google to enable automatic cloud backup. If logged out, all logs remain fully functional and are persisted directly to your device offline local cache.</span>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <button id="btn-google-login" class="flex items-center justify-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-slate-900 border border-slate-800 dark:border-slate-700 hover:bg-black dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 rounded-xl shadow-md transition-all cursor-pointer">
+              <svg class="h-4 w-4" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.211 4.114a5.89 5.89 0 01-5.9-5.9 5.89 5.89 0 015.9-5.9c1.613 0 3.085.615 4.2 1.623l3.14-3.14A10.12 10.12 0 0011.927 2C6.447 2 2 6.447 2 11.927c0 5.48 4.447 9.927 9.927 9.927 5.768 0 10.21-4.056 10.21-9.927 0-.573-.053-1.127-.146-1.642H12.24z"></path>
+              </svg>
+              <span id="txt-login-google">Google দিয়ে লগইন করুন</span>
+            </button>
+            <button id="btn-guest-login" class="flex items-center justify-center gap-1.5 px-5 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-xl transition-all cursor-pointer">
+              <i data-lucide="eye" class="h-4 w-4"></i>
+              <span id="txt-login-guest">অফলাইন গেস্ট মোড</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- BENTO SUMMARY STATS (no-print) -->
+      <section id="bento-stats" class="no-print grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <!-- 1. Days Logged -->
+        <div class="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex items-center justify-between hover:shadow transition-all group">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block" id="stat-lbl-days">Days Logged</span>
+            <span id="stat-val-days" class="text-2xl sm:text-3xl font-extrabold font-display leading-tight tracking-tight mt-1 text-slate-900 dark:text-white block">0</span>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5" id="stat-desc-days">Combined days worked</span>
+          </div>
+          <div class="p-3 bg-brand-50 dark:bg-brand-900/20 text-brand-500 rounded-xl group-hover:scale-110 transition-transform">
+            <i data-lucide="calendar" class="h-6 w-6"></i>
+          </div>
+        </div>
+
+        <!-- 2. Duty Hours -->
+        <div class="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex items-center justify-between hover:shadow transition-all group">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block" id="stat-lbl-hours">Duty Hours</span>
+            <span id="stat-val-hours" class="text-2xl sm:text-3xl font-extrabold font-display leading-tight tracking-tight mt-1 text-slate-900 dark:text-white block">0.0</span>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5" id="stat-desc-hours">Total normal working hours</span>
+          </div>
+          <div class="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-500 rounded-xl group-hover:scale-110 transition-transform">
+            <i data-lucide="clock" class="h-6 w-6"></i>
+          </div>
+        </div>
+
+        <!-- 3. Overtime Hours -->
+        <div class="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex items-center justify-between hover:shadow transition-all group">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider block" id="stat-lbl-ot">Overtime</span>
+            <span id="stat-val-ot" class="text-2xl sm:text-3xl font-extrabold font-display leading-tight tracking-tight mt-1 text-slate-900 dark:text-white block">0.0</span>
+            <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5" id="stat-desc-ot">Total overtime duration</span>
+          </div>
+          <div class="p-3 bg-amber-50 dark:bg-amber-950/20 text-amber-500 rounded-xl group-hover:scale-110 transition-transform">
+            <i data-lucide="clock3" class="h-6 w-6"></i>
+          </div>
+        </div>
+
+        <!-- 4. Estimated Wages -->
+        <div class="p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm flex items-center justify-between hover:shadow transition-all group cursor-pointer" id="card-estimated-wages">
+          <div>
+            <span class="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider flex items-center gap-1" id="stat-lbl-wages">
+              Estimated Wages
+              <i data-lucide="eye" id="icon-wages-open" class="h-3 w-3 inline text-slate-500"></i>
+              <i data-lucide="eye-off" id="icon-wages-off" class="h-3 w-3 hidden text-slate-500"></i>
+            </span>
+            <div id="stat-val-wages-container" class="mt-1">
+              <span id="stat-val-wages" class="text-2xl sm:text-3xl font-extrabold font-display leading-tight tracking-tight text-slate-900 dark:text-white block">0.00 SAR</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-0.5" id="stat-desc-wages text-xs">Standard wage + OT combined</span>
+            </div>
+            <div id="stat-val-wages-hidden" class="mt-1 hidden py-1">
+              <span class="text-sm font-semibold text-slate-400 dark:text-slate-500 italic">•••••• (click to show)</span>
+              <span class="text-[10px] text-slate-500 dark:text-slate-400 block mt-1" id="stat-desc-wages-hidden">Wages values are masked</span>
+            </div>
+          </div>
+          <div class="p-3 bg-brand-50 dark:bg-brand-900/20 text-brand-500 rounded-xl group-hover:scale-110 transition-transform">
+            <i data-lucide="dollar-sign" class="h-6 w-6"></i>
+          </div>
+        </div>
+      </section>
+
+      <!-- WORK LOG ENTRY FORM / CONTAINER (no-print) -->
+      <section id="form-container" class="no-print mb-8 p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all animate-fade-in">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="p-1 px-2.5 bg-brand-500/10 text-brand-500 rounded-lg font-bold text-xs" id="badge-form-action">ADD</div>
+          <div>
+            <h2 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white" id="lbl-form-title">Enter Daily Work Log details</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-450" id="lbl-form-subtitle">Record your tasks, location, duty hours and overtime</p>
+          </div>
+        </div>
+
+        <form id="work-log-form" class="space-y-4">
+          <input type="hidden" id="field-edit-id" />
+          
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <!-- Gregorian Date Picker -->
+            <div>
+              <label for="field-date" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5" id="lbl-f-date">Gregorian Date</label>
+              <div class="relative">
+                <input type="date" id="field-date" required class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500 dark:focus:border-brand-500 transition-colors" />
+              </div>
+            </div>
+
+            <!-- Precomputed Hijri Date (Read-only representation) -->
+            <div>
+              <label for="field-hijri" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5" id="lbl-f-hijri">Hijri Date (Automated)</label>
+              <input type="text" id="field-hijri" readonly class="text-slate-500 dark:text-slate-400 w-full text-sm rounded-xl border border-slate-150 dark:border-slate-850 bg-slate-100 dark:bg-slate-900 p-3 outline-none cursor-not-allowed" placeholder="Arabic Equivalent..." />
+            </div>
+
+            <!-- Company Selector -->
+            <div>
+              <label for="field-company" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5" id="lbl-f-company">Company / Employer</label>
+              <select id="field-company" class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" required>
+                <option value="Al Tamdin Al Watania">Al Tamdin Al Watania (التمدين الوطنية)</option>
+                <option value="Tamdeen Sub-Contracting">Tamdeen Subcontracting (التمدين للخدمات)</option>
+                <option value="Other / Client Company">Other (شركة أخرى)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Site Location Field -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="field-location" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5" id="lbl-f-location">Site Location / কাজের সাইট</label>
+              <input type="text" id="field-location" required class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" placeholder="e.g. Riyadh Metro, F-15 Slot, Building 4..." />
+            </div>
+
+            <!-- Supervisor Signature/Name -->
+            <div>
+              <label for="field-supervisor" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5" id="lbl-f-supervisor">Supervisor Name / Signature (তত্ত্বাবধায়ক)</label>
+              <input type="text" id="field-supervisor" class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" placeholder="e.g. Engineer Ahmed / Hafiz Bhai..." />
+            </div>
+          </div>
+
+          <!-- Work Hours configuration -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-850">
+            <!-- Duty hours -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="field-hours" class="text-xs font-semibold text-slate-600 dark:text-slate-400" id="lbl-f-hours">Duty hours worked</label>
+                <span id="txt-hours-val" class="text-xs font-bold text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/20">8.0 hrs</span>
+              </div>
+              <input type="range" id="field-hours" min="0" max="24" step="0.5" value="8" class="w-full accent-emerald-500 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
+              <div class="flex justify-between mt-1 text-[9px] text-slate-400 font-mono">
+                <span>0 hrs</span>
+                <span>4 hrs</span>
+                <span>8 hrs (Std)</span>
+                <span>12 hrs</span>
+                <span>24 hrs</span>
+              </div>
+            </div>
+
+            <!-- Overtime hours -->
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label for="field-overtime" class="text-xs font-semibold text-slate-600 dark:text-slate-400" id="lbl-f-ot">Overtime hours (OT)</label>
+                <span id="txt-ot-val" class="text-xs font-bold text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/20">0.0 hrs</span>
+              </div>
+              <input type="range" id="field-overtime" min="0" max="24" step="0.5" value="0" class="w-full accent-amber-500 h-2 bg-slate-200 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer" />
+              <div class="flex justify-between mt-1 text-[9px] text-slate-400 font-mono">
+                <span>0 hrs</span>
+                <span>2 hrs</span>
+                <span>4 hrs</span>
+                <span>8 hrs</span>
+                <span>24 hrs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- High-Fidelity Quick Presets -->
+          <div class="flex flex-wrap items-center gap-2 mt-1">
+            <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mr-1" id="lbl-presets">Quick Presets:</span>
+            <button type="button" class="btn-preset px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-600 dark:text-slate-300 transition-all cursor-pointer" data-h="8" data-ot="0">8 (Normal)</button>
+            <button type="button" class="btn-preset px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-600 dark:text-slate-300 transition-all cursor-pointer" data-h="8" data-ot="2">8 + 2 (OT)</button>
+            <button type="button" class="btn-preset px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-600 dark:text-slate-300 transition-all cursor-pointer" data-h="8" data-ot="4">8 + 4 (OT)</button>
+            <button type="button" class="btn-preset px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-600 dark:text-slate-300 transition-all cursor-pointer" data-h="10" data-ot="0">10 (Normal)</button>
+            <button type="button" class="btn-preset px-2.5 py-1 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-600 dark:text-slate-300 transition-all cursor-pointer" data-h="0" data-ot="0">Holiday (0)</button>
+          </div>
+
+          <!-- Work Description Textbox with Bengali-English Translation Lookup -->
+          <div>
+            <div class="flex justify-between items-center mb-1.5">
+              <label for="field-description" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 animate-pulse" id="lbl-f-desc">Work Description (কাজের বিবরণ)</label>
+              <!-- Automatic Google Translation trigger -->
+              <button type="button" id="btn-auto-translate" class="flex items-center gap-1 px-2.5 py-1 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/25 dark:hover:bg-brand-950/40 text-brand-500 rounded-lg text-[10px] font-bold tracking-tight border border-brand-500/20 cursor-pointer">
+                <i data-lucide="globe-2" class="h-3 w-3"></i>
+                <span id="txt-btn-translate">Auto Translation (ডল ডল অনুবাদ করুন)</span>
+              </button>
+            </div>
+            
+            <textarea id="field-description" required rows="3" class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" placeholder="Describe files & tasks performed... (আপনি বাংলায় লিখতে পারেন, তারপর অনুবাদ বোতামটি টিপুন)"></textarea>
+
+            <!-- Live translated visual fields for review -->
+            <div id="translator-output-block" class="hidden mt-2 grid grid-cols-1 md:grid-cols-2 gap-3 p-3 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-150 dark:border-slate-850 text-xs animate-fade-in">
+              <div>
+                <span class="font-bold text-slate-400 block uppercase tracking-wider text-[8px] mb-0.5">English Translation</span>
+                <p id="txt-translated-en" class="text-slate-700 dark:text-slate-300 italic min-h-[22px]">Not translated...</p>
+              </div>
+              <div>
+                <span class="font-bold text-slate-400 block uppercase tracking-wider text-[8px] mb-0.5">Arabic Translation (العربية)</span>
+                <p id="txt-translated-ar" class="text-slate-700 dark:text-slate-300 italic min-h-[22px] text-right dir-rtl">لم يُترجم بعد...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- General remarks & Notes -->
+          <div>
+            <label for="field-notes" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5" id="lbl-f-notes">Remarks / Comments (মন্তব্য)</label>
+            <input type="text" id="field-notes" class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" placeholder="Add specific notes, travel details or holiday tags... (ঐচ্ছিক)" />
+          </div>
+
+          <!-- Submit Buttons -->
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button type="button" id="btn-form-cancel" class="hidden flex items-center justify-center gap-1.5 px-5 py-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold tracking-tight transition-all cursor-pointer">
+              <i data-lucide="x" class="h-4 w-4"></i>
+              <span id="txt-btn-cancel">Cancel</span>
+            </button>
+            <button type="submit" id="btn-form-submit" class="w-full sm:w-auto flex items-center justify-center gap-1.5 px-6 py-3 bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white rounded-xl text-xs font-bold tracking-tight shadow-md transition-all border border-brand-600 cursor-pointer">
+              <i data-lucide="check" class="h-4 w-4 animate-bounce"></i>
+              <span id="txt-btn-submit">Save Work Record</span>
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <!-- HISTORIC RECORD STATEMENTS BLOCK (Includes printed report columns) -->
+      <section class="p-5 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm transition-all antialiased">
+        
+        <!-- Header Controls Panel -->
+        <div id="search-filter-controls" class="no-print space-y-4 mb-6">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white" id="lbl-tbl-title">Work Records Statement History</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-450" id="lbl-tbl-subtitle">Filter entries, search tasks, print or export csv tables.</p>
+            </div>
+
+            <!-- Export Buttons -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="btn-export-csv" class="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer">
+                <i data-lucide="download" class="h-4 w-4"></i>
+                <span id="txt-export-csv">CSV Export</span>
+              </button>
+              <button id="btn-print-report" class="flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition-all cursor-pointer">
+                <i data-lucide="printer" class="h-4 w-4"></i>
+                <span id="txt-print-btn">Print Report</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Interactive Filters Row (Search, Filter by date & company) -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/60 dark:border-slate-850">
+            <!-- Search Input -->
+            <div class="relative md:col-span-2">
+              <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400">
+                <i data-lucide="search" class="h-4 w-4"></i>
+              </div>
+              <input type="text" id="filter-search" class="w-full text-xs pl-9 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 outline-none focus:border-brand-500" placeholder="Search by site location, client, or description details..." />
+            </div>
+
+            <!-- Date Range Selectors -->
+            <div>
+              <input type="month" id="filter-month" class="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 outline-none focus:border-brand-500" />
+            </div>
+
+            <!-- Company Filter -->
+            <div>
+              <select id="filter-company" class="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 outline-none focus:border-brand-500">
+                <option value="">All Companies (সব কোম্পানি)</option>
+                <option value="Al Tamdin Al Watania">Al Tamdin Al Watania</option>
+                <option value="Tamdeen Sub-Contracting">Tamdeen Services</option>
+                <option value="Other">Other Companies</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- TABLE SECTION -->
+        <div class="overflow-x-auto rounded-xl border border-slate-150 dark:border-slate-800 shadow-inner">
+          <table class="w-full text-left text-xs border-collapse font-sans bg-white dark:bg-slate-900 leading-normal" id="records-table">
+            <thead class="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-b border-slate-150 dark:border-slate-850 uppercase tracking-wider font-bold">
+              <tr>
+                <th class="p-3.5 text-[10px]" id="th-date">Date / তারিখ</th>
+                <th class="p-3.5 text-[10px]" id="th-company">Company / কোম্পানি</th>
+                <th class="p-3.5 text-[10px]" id="th-location">Location / সাইট</th>
+                <th class="p-3.5 text-[10px] text-center" id="th-hours">Duty Hrs</th>
+                <th class="p-3.5 text-[10px] text-center" id="th-ot">OT Hrs</th>
+                <th class="p-3.5 text-[10px] text-right" id="th-wages">Wages</th>
+                <th class="p-3.5 text-[10px]" id="th-description">Work Description</th>
+                <th class="p-3.5 text-[10px]" id="th-notes">Notes / Supervisor</th>
+                <th class="p-3.5 text-[10px] text-center no-print" id="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="records-tbody" class="divide-y divide-slate-100 dark:divide-slate-850">
+              <!-- Dynamically populated rows -->
+              <tr>
+                <td colspan="9" class="p-12 text-center text-slate-400 dark:text-slate-500 italic">
+                  <div class="flex flex-col items-center justify-center gap-2">
+                    <i data-lucide="loader-2" class="h-6 w-6 animate-spin text-brand-500"></i>
+                    <span id="txt-fetching">Connecting core offline/online database engines...</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Print-only Signatures Section -->
+        <div class="print-only hidden mt-16 grid grid-cols-2 gap-12 font-sans text-xs">
+          <div class="border-t border-dashed border-slate-800 pt-3 text-center">
+            <p class="font-bold text-slate-900" id="lbl-print-sig-emp">Worker / Labor Representative Signature</p>
+            <p class="text-[10px] text-slate-400 mt-1">Date: ____________________</p>
+          </div>
+          <div class="border-t border-dashed border-slate-800 pt-3 text-center">
+            <p class="font-bold text-slate-900" id="lbl-print-sig-sup">Al Tamdin Site Supervisor Official Signature</p>
+            <p class="text-[10px] text-slate-400 mt-1">Stamp & Code verification</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- FOOTER (no-print) -->
+    <footer class="no-print mt-12 py-6 border-t border-slate-200 dark:border-slate-850 text-center text-[10px] text-slate-400 dark:text-slate-500">
+      <p>&copy; 2026 Al Tamdin Al Watania Work Log System. All Rights Reserved.</p>
+      <p class="mt-1" id="lbl-footer-secure">Secured via Firebase Firestore persistent data storage.</p>
+    </footer>
+
+    <!-- SETTINGS MODAL DIALOG (no-print) -->
+    <div id="settings-modal" class="no-print hidden fixed inset-0 z-50 overflow-y-auto bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+      <div class="w-full max-w-md rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xl transition-all">
+        <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <i data-lucide="settings" class="h-5 w-5 text-brand-500"></i>
+            <h3 class="text-base font-bold text-slate-900 dark:text-white" id="lbl-set-title">Salary Estimation Configuration</h3>
+          </div>
+          <button id="btn-settings-close" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+            <i data-lucide="x" class="h-4 w-4"></i>
+          </button>
+        </div>
+
+        <form id="settings-form" class="space-y-4">
+          <div>
+            <label for="set-hourly-rate" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1" id="lbl-set-rate">Standard Hourly Wage (SAR)</label>
+            <input type="number" id="set-hourly-rate" min="0" step="0.5" required class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-100 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" />
+            <span class="text-[10px] text-slate-400 dark:text-slate-500 block mt-1" id="lbl-set-rate-desc">Used to compute estimates for standard duty hours</span>
+          </div>
+
+          <div>
+            <label for="set-ot-multiplier" class="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1" id="lbl-set-ot">Overtime Multiplier rate (x)</label>
+            <input type="number" id="set-ot-multiplier" min="1" step="0.1" required class="w-full text-sm rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-3 outline-none focus:border-brand-500" />
+            <span class="text-[10px] text-slate-400 dark:text-slate-500 block mt-1" id="lbl-set-ot-desc">Multiplier for hours exceeding normal duty. Standard is 1.5</span>
+          </div>
+
+          <div class="flex items-center justify-between py-2 border-t border-b border-slate-100 dark:border-slate-800">
+            <span class="text-xs font-semibold text-slate-600 dark:text-slate-400" id="lbl-set-mask">Mask Wages calculations on Bento stats</span>
+            <button type="button" id="btn-toggle-mask-state" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-slate-200 dark:bg-slate-800 transition-all focus:outline-none">
+              <span id="span-mask-knob" class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition-all translate-x-0"></span>
+            </button>
+          </div>
+
+          <div class="flex items-center justify-end pt-2">
+            <button type="submit" class="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer">
+              <span id="lbl-set-save">Save Settings</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+
+    <!-- 6. DIGITAL ID CARD BADGE MODAL OVERLAY (no-print) -->
+    <div id="idcard-modal" class="no-print hidden fixed inset-0 z-50 overflow-y-auto bg-black/75 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in animate-duration-300">
+      <div class="relative w-full max-w-md rounded-2xl bg-slate-100 dark:bg-slate-900 p-6 shadow-2xl scale-100 transition-all border border-slate-250 dark:border-slate-800">
+        
+        <!-- Header Controls -->
+        <div class="flex items-center justify-between mb-4 pb-2 border-b border-slate-200 dark:border-slate-800">
+          <div class="flex items-center gap-2">
+            <i data-lucide="credit-card" class="h-5 w-5 text-brand-500"></i>
+            <h3 class="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider font-display" id="id-title-main">Digital ID Badge Card</h3>
+          </div>
+          <button id="btn-idcard-close" class="p-1 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400 cursor-pointer" title="Close">
+            <i data-lucide="x" class="h-4 w-4"></i>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Live Preview Visual Render Widget -->
+          <div class="flex flex-col items-center justify-center">
+            
+            <!-- Real physical Card wrapper to screenshot -->
+            <div id="badge-capture-container" class="relative w-[240px] h-[360px] bg-slate-50 dark:bg-slate-950 border-2 border-slate-350 dark:border-slate-800 rounded-2xl flex flex-col p-3 shadow-lg select-none text-slate-900 tracking-tight text-[10px] overflow-hidden">
+              <!-- Top Header Accent -->
+              <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5 mb-2 shrink-0">
+                <div class="flex items-center gap-1.5 text-slate-800 dark:text-slate-100">
+                  <!-- Custom Brand Circle SVG logo -->
+                  <div class="h-6 w-6 rounded-full bg-gradient-to-tr from-brand-600 to-amber-500 flex items-center justify-center flex-shrink-0">
+                    <span class="text-[7px] text-white font-extrabold uppercase">T</span>
+                  </div>
+                  <div>
+                    <h4 class="font-extrabold text-[8px] tracking-tight leading-none text-slate-900 dark:text-white uppercase font-display">Al Tamdin</h4>
+                    <p class="text-[5px] text-slate-400 dark:text-slate-500 leading-none">Al Watania Contracting</p>
+                  </div>
+                </div>
+                <div class="text-[5px] text-brand-500 dark:text-brand-400 tracking-wider font-extrabold font-mono text-right inline-block uppercase bg-brand-500/10 dark:bg-brand-500/20 px-1 py-0.5 rounded leading-none shrink-0 border border-brand-500/10">WORKER</div>
+              </div>
+
+              <!-- Content Body (Dynamic details) -->
+              <div class="flex-1 flex flex-col items-center justify-between gap-1">
+                <!-- Worker Photo Profile Element -->
+                <div class="relative group">
+                  <div class="w-24 h-28 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-200 dark:border-slate-850 shadow-md">
+                    <img id="id-photo-display" src="" alt="Profile Photo" class="w-full h-full object-cover hidden" referrerPolicy="no-referrer" />
+                    <!-- Fallback placeholder avatar -->
+                    <div id="id-photo-placeholder" class="text-slate-300 dark:text-slate-700 flex flex-col items-center justify-center gap-1 py-4">
+                      <i data-lucide="user" class="h-10 w-10 text-slate-400 dark:text-slate-550"></i>
+                      <span class="text-[7px] text-slate-400 block tracking-tight">No Photo</span>
+                    </div>
+                  </div>
+                  <!-- Secure Verification Stamp overlay -->
+                  <div class="absolute -bottom-2.5 -right-2.5 bg-emerald-500 text-white rounded-full p-1 opacity-95 flex items-center justify-center border-2 border-white dark:border-slate-950 shadow">
+                    <i data-lucide="check" class="h-2.5 w-2.5 leading-none"></i>
+                  </div>
+                </div>
+
+                <!-- Worker Text Details block -->
+                <div class="text-center w-full mt-2 space-y-0.5">
+                  <span class="font-bold text-slate-900 dark:text-white text-md tracking-tight block leading-tight truncate px-1" id="id-name-en-val">Employee Name</span>
+                  <span class="font-bold text-slate-500 dark:text-slate-400 text-xs tracking-tight block font-sans tracking-wide leading-tight px-1 dir-rtl" id="id-name-ar-val">الاسم الكامل</span>
+                </div>
+
+                <!-- Dynamic Code 39 Barcode output -->
+                <div class="w-full h-11 flex flex-col items-center justify-center bg-white dark:bg-slate-900 border border-slate-150 dark:border-slate-800 rounded px-2 py-1 shrink-0 mt-1">
+                  <!-- SVG drawing of the barcode bars -->
+                  <svg id="id-barcode-svg" class="w-full h-6 shrink-0 text-slate-950 dark:text-slate-950" preserveAspectRatio="none" viewBox="0 0 100 24"></svg>
+                  <span class="text-[7px] text-center font-bold font-mono tracking-widest text-slate-500 dark:text-slate-400 mt-1 leading-none shrink-0" id="id-barcode-under">6697</span>
+                </div>
+              </div>
+
+              <!-- Footer Security Seal -->
+              <div class="border-t border-slate-200 dark:border-slate-850 pt-1 flex justify-between items-center text-[5px] text-slate-400 dark:text-slate-500 shrink-0 select-none uppercase font-mono tracking-wider">
+                <span>Riyadh, Saudi Arabia</span>
+                <span class="font-extrabold text-brand-500">Secure digital badge</span>
+              </div>
+            </div>
+
+            <!-- Download Button -->
+            <button id="btn-id-download" class="mt-4 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow transition-all cursor-pointer">
+              <i data-lucide="download" class="h-3 w-3"></i>
+              <span id="lbl-id-download">SAVE PNG BADGE</span>
+            </button>
+          </div>
+
+          <!-- Configuration Setup / Form Parameters -->
+          <div class="flex flex-col justify-between">
+            <div class="space-y-3">
+              <div class="p-2.5 rounded-xl bg-slate-200/50 dark:bg-slate-800/40 text-[10px] text-slate-500 dark:text-slate-400 flex items-start gap-1.5 border border-slate-200 dark:border-slate-800">
+                <i data-lucide="alert-circle" class="h-4 w-4 shrink-0 text-amber-500 mt-0.5 animate-bounce"></i>
+                <span id="txt-badge-help">Customize your digital worker ID profile name and National ID card code. Any uploaded profile image file is synchronized on cloud storage securely!</span>
+              </div>
+
+              <div id="section-id-auth-mask" class="hidden">
+                 <p class="text-[10px] text-amber-500 font-bold" id="lbl-badge-notlogged">⚠️ Please Log In with Google to upload and sync your ID card photos automatically!</p>
+              </div>
+
+              <!-- Mini Editor Inputs -->
+              <div class="space-y-2">
+                <div>
+                  <label for="id-edit-en" class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5" id="lbl-id-edit-en">English Name (ইংরেজি নাম)</label>
+                  <input type="text" id="id-edit-en" class="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 outline-none focus:border-brand-500 dark:text-slate-100" />
+                </div>
+                <div>
+                  <label for="id-edit-ar" class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5" id="lbl-id-edit-ar">Arabic Name (আরবি নাম)</label>
+                  <input type="text" id="id-edit-ar" class="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 outline-none focus:border-brand-500 text-right dir-rtl dark:text-slate-100" />
+                </div>
+                <div>
+                  <label for="id-edit-code" class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-0.5" id="lbl-id-edit-code">Worker iD Code (আইডি নম্বর)</label>
+                  <input type="text" id="id-edit-code" class="w-full text-xs rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-2 outline-none focus:border-brand-500 dark:text-slate-100" placeholder="e.g. 6697" />
+                </div>
+
+                <!-- Custom Photo File Upload Widget -->
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1" id="lbl-id-edit-photo">Upload ID Photo (আপনার ছবি আপলোড)</label>
+                  <div class="flex items-center gap-2">
+                    <button type="button" id="btn-photo-trigger" class="flex-1 flex items-center justify-center gap-1 px-3 py-2 text-[11px] font-bold rounded-lg border border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-950 hover:bg-slate-50 text-slate-700 dark:text-slate-400 transition-all cursor-pointer">
+                      <i data-lucide="upload" class="h-3.5 w-3.5 text-brand-500"></i>
+                      <span id="txt-browse-photo">Browse...</span>
+                    </button>
+                    <button type="button" id="btn-photo-remove" class="p-2 rounded-lg border border-slate-250 dark:border-slate-800 bg-white dark:bg-slate-950 text-red-500 cursor-pointer" title="Remove Photo">
+                      <i data-lucide="x" class="h-3.5 w-3.5"></i>
+                    </button>
+                    <!-- Hidden browser file input -->
+                    <input type="file" id="id-photo-file" accept="image/*" class="hidden" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Footer Save Tools -->
+            <div class="flex items-center justify-end gap-2 mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+              <button type="button" id="btn-id-reset" class="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-400 text-xs font-bold transition-all hover:bg-slate-300 dark:hover:bg-slate-700 cursor-pointer">
+                <i data-lucide="rotate-ccw" class="h-3.5 w-3.5"></i>
+                <span id="lbl-id-reset">RESET</span>
+              </button>
+              <button type="button" id="btn-id-save-db" class="flex items-center gap-1.5 px-5 py-2 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold shadow-md transition-all border border-brand-600 cursor-pointer">
+                <i data-lucide="check" class="h-3.5 w-3.5 animate-bounce"></i>
+                <span id="lbl-id-save">SAVE DETAILS</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Firebase App Module Link imports and initialization -->
   </body>
 </html>
-
