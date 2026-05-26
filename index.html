@@ -41,7 +41,20 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <!-- Custom external stylesheet style.css -->
-    <script type="module" crossorigin src="./assets/index-DFsKFe58.js"></script>
+
+    <!-- PWA Settings and Service Worker -->
+    <link rel="manifest" href="./assets/manifest-Ch2ripIW.json" />
+    <meta name="theme-color" content="#1a73e8" />
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker registered successfully:', reg.scope))
+            .catch(err => console.error('Service Worker registration failed:', err));
+        });
+      }
+    </script>
+    <script type="module" crossorigin src="./assets/index-CLce-xWi.js"></script>
     <link rel="stylesheet" crossorigin href="./assets/index-i3j7gkV_.css">
   </head>
   <body class="bg-slate-50 text-slate-900 transition-colors duration-200 dark:bg-slate-950 dark:text-slate-100 min-h-screen pb-16 antialiased selection:bg-brand-500 selection:text-white">
